@@ -1,0 +1,7 @@
+mandelbrot
+*.o
+*.pgm
+times.txt
+
+exp[1-7]_*
+!exp[1-7]_*.c
