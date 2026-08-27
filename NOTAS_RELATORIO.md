@@ -12,15 +12,28 @@
 
 ## 0. Identificação
 
-- **Aluno:** *(preencher)*
+- **Aluno:** Mateus Reinaux Batista Meira
 - **Login de entrega:** `mrbm`
-- **Repositório:** *(link do GitHub)*
-- **Ambiente de execução:** WSL2 Ubuntu — *(versão do kernel, `gcc --version`)*
-- **Hardware:** *(modelo da CPU, núcleos físicos e lógicos — `lscpu`)*
+- **Repositório:** *(link do GitHub — criar e preencher)*
+- **Ambiente de execução:** WSL2 Ubuntu, kernel `6.6.87.2-microsoft-standard-WSL2`,
+  `gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`, GNU Make 4.4.1
+- **Hardware:** Intel Core i7-13620H — 8 núcleos físicos, 16 threads lógicas
+  (2 threads por núcleo)
 
-O número de núcleos importa: é a referência contra a qual o speedup medido deve ser
-lido. Um speedup de 4× em uma máquina de 4 núcleos é o teto teórico; em uma de 8,
-indica que metade da capacidade ficou ociosa.
+Verificação feita no dia 0: `-fopenmp` compila e a região paralela abre 16 threads
+por padrão; `-pthread` e `-fsanitize=thread` também compilam e executam.
+
+O número de núcleos é a referência contra a qual o speedup medido deve ser lido, e
+aqui os dois números divergem. As 16 threads lógicas vêm de *hyperthreading*: dois
+contextos compartilhando as mesmas unidades de execução de um núcleo físico. O
+cálculo do Mandelbrot é aritmética de ponto flutuante em laço apertado, sem espera
+por memória — exatamente o perfil que não se beneficia de *hyperthreading*, porque
+não há bolhas de pipeline para o segundo contexto preencher.
+
+**Previsão a confrontar com a medição:** o speedup deve crescer quase linearmente
+até 8 threads e depois achatar, em vez de continuar até 16. Se a medição confirmar,
+é o resultado mais interessante da seção de desempenho; se contrariar, o motivo
+merece investigação.
 
 ---
 
@@ -464,7 +477,30 @@ metodologia do relatório e garante que a ordem dos acontecimentos não se perca
 
 ### 27/08 — quinta
 
-*(preencher)*
+**Bloco 0 concluído.** Ambiente verificado antes de escrever qualquer linha de
+código: `gcc -fopenmp -pthread` compila e executa, a região paralela abre 16
+threads, e `-fsanitize=thread` também compila — este último importa porque os
+experimentos 2 e 4 dependem dele para capturar as corridas.
+
+Estrutura criada: `Makefile`, `.gitignore`, `.gitattributes`, `testes/oficiais`
+(arquivos do professor sem alteração) e `testes/esperado` (só o conteúdo das
+imagens, pronto para `diff`).
+
+Duas decisões que já valem registro:
+
+1. **`.gitattributes` com `* text=auto eol=lf`.** O repositório é editado no
+   Windows e compilado no WSL. Sem isso, o Git converteria tudo para CRLF na cópia
+   de trabalho: o `make` falharia ao ler as regras do Makefile e o `diff` contra os
+   gabaritos acusaria diferença em todas as linhas, por um motivo que não tem nada
+   a ver com o cálculo. É o tipo de erro que custa uma tarde inteira sendo
+   procurado no lugar errado.
+2. **Newline final nos gabaritos.** Os arquivos do professor terminam sem quebra de
+   linha; a saída do programa termina com `\n` na última linha, como é padrão em
+   Unix. Em vez de normalizar a cada comparação — como foi feito na Implementação 1
+   com `sed '$a\'` — os arquivos de `testes/esperado` já foram gravados com o
+   newline final. A normalização vira dado, não código.
+
+*(preencher — implementação serial, blocos 1 e 2)*
 
 ### 28/08 — sexta
 
