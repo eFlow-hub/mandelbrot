@@ -14,7 +14,7 @@
 
 - **Aluno:** Mateus Reinaux Batista Meira
 - **Login de entrega:** `mrbm`
-- **Repositório:** *(link do GitHub — criar e preencher)*
+- **Repositório:** https://github.com/eFlow-hub/mandelbrot
 - **Ambiente de execução:** WSL2 Ubuntu, kernel `6.6.87.2-microsoft-standard-WSL2`,
   `gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`, GNU Make 4.4.1
 - **Hardware:** Intel Core i7-13620H — 8 núcleos físicos, 16 threads lógicas

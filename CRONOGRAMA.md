@@ -42,7 +42,7 @@
       → `0316cce`
 - [x] **Bloco 2** — `testes/check.sh` e alvo `make check`
       → `2d89f24`
-- [ ] Criar o repositório no GitHub e adicionar o remote
+- [x] Criar o repositório no GitHub e adicionar o remote → https://github.com/eFlow-hub/mandelbrot
 
 **Gate:** ✅ `make check` passa nos 3 testes oficiais com a implementação serial.
 
@@ -132,7 +132,7 @@ implementações paralelas, que valem 75% da nota.
 - [ ] Arquivo `mrbm.pdf` (relatório)
 - [x] `Makefile` com alvo de compilação e `clean`
 - [ ] Código-fonte em C com as quatro implementações
-- [ ] Link do GitHub citado no relatório
+- [x] Link do GitHub citado no relatório
 - [x] Commits atômicos alinhados às seções do relatório
 - [ ] Os 4 `.pgm` gerados numa única execução e idênticos entre si
 - [ ] `times.txt` com os 4 tempos
