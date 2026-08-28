@@ -1,0 +1,116 @@
+========================================================================
+28/08/2026 — Bloco 0: verificacao do ambiente
+========================================================================
+
+$ gcc --version | head -1
+gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+
+$ uname -r
+6.6.87.2-microsoft-standard-WSL2
+
+$ lscpu | grep -E "^Model name|^CPU\(s\)|^Thread|^Core"
+Model name:                           13th Gen Intel(R) Core(TM) i7-13620H
+CPU(s):                               16
+Thread(s) per core:                   2
+Core(s) per socket:                   8
+
+$ gcc -Wall -Wextra -fopenmp -pthread -o smoke smoke.c && ./smoke
+omp_threads=16 pthreads=ok
+
+$ gcc -fsanitize=thread -pthread -o smoke_tsan smoke.c
+(compilou sem erro — necessario para os experimentos 2 e 4)
+
+
+========================================================================
+28/08/2026 — Bloco 1: implementacao serial
+========================================================================
+
+$ make
+gcc -Wall -Wextra -O2 -fopenmp -pthread -o mandelbrot mandelbrot.c
+(sem avisos)
+
+$ ./mandelbrot 4 4 50 1 && diff testes/esperado/teste1.txt mandelbrot_mrbm_serial.pgm
+(sem diferencas)
+
+$ ./mandelbrot 6 6 30 3 && diff testes/esperado/teste2.txt mandelbrot_mrbm_serial.pgm
+(sem diferencas)
+
+$ ./mandelbrot 10 6 40 4 && diff testes/esperado/teste3.txt mandelbrot_mrbm_serial.pgm
+(sem diferencas)
+
+Os tres gabaritos passaram na primeira execucao. As formulas foram deduzidas dos
+proprios gabaritos antes de escrever o codigo, e o experimento 1 abaixo mostra o
+que teria acontecido com as duas escolhas alternativas.
+
+
+========================================================================
+28/08/2026 — Experimento 1: mapeamento e normalizacao
+========================================================================
+
+Tres variantes do mesmo calculo sobre o caso do teste 1 (./mandelbrot 4 4 50 1).
+
+--- variante "correto": passo = 3.0/largura, normalizacao truncada ---
+
+$ ./experimentos/exp1_mapeamento correto | diff -u testes/esperado/teste1.txt -
+(sem diferencas)
+
+--- variante "borda": passo = 3.0/(largura-1), normalizacao truncada ---
+
+$ ./experimentos/exp1_mapeamento borda | diff -u testes/esperado/teste1.txt -
+--- testes/esperado/teste1.txt
++++ -
+@@ -1,4 +1,4 @@
+  5 10 10 10
+ -5 15 30 25
+ -255 255 255 255
+ -5 15 30 25
+ +5 25 255 10
+ +5 25 255 10
+ +5 10 10 10
+
+Tres das quatro linhas erradas. Dividir por largura-1 estica a regiao: o passo
+sobe de 0,75 para 1,0 e a imagem inteira passa a amostrar pontos diferentes do
+plano. A linha de 255, que deveria estar em y=2 (onde a parte imaginaria e zero),
+migra para y=0 e y=1, e a simetria conjugada do conjunto some.
+
+--- variante "arredonda": passo = 3.0/largura, normalizacao com round() ---
+
+$ ./experimentos/exp1_mapeamento arredonda | diff -u testes/esperado/teste1.txt -
+--- testes/esperado/teste1.txt
++++ -
+@@ -1,4 +1,4 @@
+  5 10 10 10
+ -5 15 30 25
+ +5 15 31 26
+  255 255 255 255
+ -5 15 30 25
+ +5 15 31 26
+
+Dois pixels errados, cada um por exatamente uma unidade. iter=6 com max_iter=50
+da 30,6: truncar produz 30, arredondar produz 31. A imagem continua visualmente
+identica ao gabarito — o erro so aparece na comparacao byte a byte.
+
+Contraste entre as duas variantes: a primeira falha de forma escandalosa e seria
+notada em qualquer inspecao visual; a segunda passa despercebida e so e pega por
+um teste automatizado. E o argumento para o Bloco 2 existir.
+
+
+========================================================================
+28/08/2026 — Bloco 2: harness de teste
+========================================================================
+
+$ make check
+===== ./mandelbrot 4 4 50 1 =====
+OK: mandelbrot_mrbm_serial.pgm
+===== ./mandelbrot 6 6 30 3 =====
+OK: mandelbrot_mrbm_serial.pgm
+===== ./mandelbrot 10 6 40 4 =====
+OK: mandelbrot_mrbm_serial.pgm
+===== stdout mudo =====
+OK: stdout vazio
+===== times.txt =====
+Serial: 0.000005s
+OK: times.txt gerado
+
+TODOS OS TESTES PASSARAM
+status=0
