@@ -3,78 +3,84 @@
 **Disciplina:** Infraestrutura de Software
 **Login de entrega:** `mrbm`
 **Entrega:** segunda, 31/08 — `mrbm.pdf` + `mrbm.tar` via Google Classroom
-**Janela de trabalho:** quinta 27/08 → segunda 31/08 (5 dias)
+**Janela de trabalho:** sexta 28/08 (noite) → segunda 31/08
+
+> **Correção de data.** A primeira versão deste cronograma foi montada assumindo
+> que o dia 0 seria quinta 27/08, resultando em cinco dias. Os relógios do Windows
+> e do WSL confirmaram sexta 28/08: são **quatro dias**. O Bloco 0 fechou em
+> minutos em vez das 4h previstas, então o atraso de calendário foi absorvido —
+> a fundação inteira já está pronta na noite de sexta.
 
 ---
 
 ## Regras de operação
 
 1. `make check` verde antes de qualquer commit. Se falhar, não commita.
-2. `NOTAS_RELATORIO.md` é alimentado **no dia**, nunca no dia 31. O relatório final é montagem, não redação.
-3. Cada erro instrumentado gera **dois commits**: `experimento N: <sintoma observado>` e, em seguida, `bloco X: <correção>`. O `git log` conta a evolução sozinho.
-4. A saída de cada experimento vai para `evidencias.log` na hora, junto com o comando exato que a produziu.
-5. Experimentos vivem em `experimentos/expN_*.c` — arquivos isolados e reproduzíveis. A `main` nunca fica quebrada no histórico.
+2. `NOTAS_RELATORIO.md` é alimentado **no dia**, nunca no dia 31. O relatório final
+   é montagem, não redação.
+3. Cada erro instrumentado gera **dois commits**: `experimento N: <sintoma
+   observado>` e, em seguida, `bloco X: <correção>`. O `git log` conta a evolução
+   sozinho.
+4. A saída de cada experimento vai para `evidencias.log` na hora, junto com o
+   comando exato que a produziu.
+5. Experimentos vivem em `experimentos/expN_*.c` — arquivos isolados e
+   reproduzíveis. A `main` nunca fica quebrada no histórico.
 
 ---
 
-## Dia 0 — quinta 27/08 · fundação (~4h)
+## Dia 0 — sexta 28/08, noite · fundação ✅ CONCLUÍDO
 
-- [ ] Verificar ambiente no WSL Ubuntu: `gcc -fopenmp` e `-pthread` compilam
-- [ ] **Bloco 0** — `git init`, remote no GitHub, `.gitignore`, `Makefile`, `NOTAS_RELATORIO.md`
-      → commit `bloco 0: setup do projeto`
-- [ ] **Bloco 1** — implementação serial: mapeamento, laço de escape, normalização, escrita do `.pgm`, `times.txt`
-      → commit `bloco 1: implementacao serial`
-- [ ] **Bloco 2** — `testes/check.sh`: roda os 3 gabaritos oficiais e compara os 4 `.pgm` entre si com `cmp`
-      → commit `bloco 2: harness de teste`
-- [ ] *(oportunista)* **Experimento 1** — se o mapeamento sair como `x * 3.0/(largura-1)` ou a normalização com `round()`, **não corrigir antes de rodar**. Deixar o teste 1 falhar, salvar a saída errada, aí corrigir.
-- [ ] Registrar decisões do dia em `NOTAS_RELATORIO.md`
+- [x] Ambiente verificado no WSL Ubuntu: `gcc -fopenmp`, `-pthread` e
+      `-fsanitize=thread` compilam e executam
+- [x] **Bloco 0** — `git init`, `.gitignore`, `.gitattributes`, `Makefile`,
+      gabaritos oficiais em `testes/`
+      → `c2fb695`
+- [x] **Bloco 1** — implementação serial: mapeamento, laço de escape,
+      normalização, escrita do `.pgm`, `times.txt`
+      → `78421f9`
+- [x] **Experimento 1** — mapeamento com `largura-1` e normalização arredondada
+      → `0316cce`
+- [x] **Bloco 2** — `testes/check.sh` e alvo `make check`
+      → `2d89f24`
+- [ ] Criar o repositório no GitHub e adicionar o remote
 
-**Gate:** `make check` passa nos 3 testes oficiais com a implementação serial.
-
-> O serial vale só 5% da nota, mas é o oráculo de correção dos outros 75%. Sem ele validado, nada mais é verificável.
+**Gate:** ✅ `make check` passa nos 3 testes oficiais com a implementação serial.
 
 ---
 
-## Dia 1 — sexta 28/08 · Pthreads 1, 25% (~5h)
+## Dia 1 — sábado 29/08 · Pthreads 1 e 2, 50% (~6h)
 
 - [ ] **Bloco 3** — Pthreads-1: divisão estática por blocos de linhas contíguas
 - [ ] **Experimento 2** — `&i` compartilhado no `pthread_create`
-- [ ] **Experimento 3** — resto da divisão inteira descartado (`altura / num_threads`)
+- [ ] **Experimento 3** — resto da divisão inteira descartado
 - [ ] **Bloco 4** — correções + `make check` verde
-      → commits `experimento 2: ...`, `experimento 3: ...`, `bloco 3: pthreads1 estatico`, `bloco 4: ...`
-- [ ] Colar evidências (saídas divergentes, relatório do ThreadSanitizer) em `NOTAS_RELATORIO.md` e `evidencias.log`
-
-**Gate:** `mandelbrot_mrbm_pthreads1.pgm` idêntico ao serial nos 3 testes oficiais.
-
----
-
-## Dia 2 — sábado 29/08 · Pthreads 2 + OpenMP, 50% (~6h)
-
-- [ ] **Bloco 5** — Pthreads-2: fila dinâmica de linhas, contador global protegido por mutex
+- [ ] **Bloco 5** — Pthreads-2: fila dinâmica de linhas sob mutex
 - [ ] **Experimento 4** — `proxima_linha++` sem mutex
+- [ ] Evidências em `evidencias.log` e diário em `NOTAS_RELATORIO.md`
+
+**Gate:** `pthreads1.pgm` e `pthreads2.pgm` idênticos ao serial nos 3 testes.
+
+---
+
+## Dia 2 — domingo 30/08 · OpenMP + robustez + medições (~6h)
+
 - [ ] **Bloco 6** — OpenMP no laço de cálculo
-- [ ] **Experimento 5** — variáveis `zr`, `zi`, `iter` compartilhadas (faltou `private`)
-- [ ] Rodar as medições de desempenho com imagem grande e preencher a tabela nas notas
+- [ ] **Experimento 5** — variáveis compartilhadas por falta de `private`
+- [ ] **Bloco 7** — validação de argumentos com `strtol`, tratamento de falha em
+      `malloc`, `fopen` e `pthread_create`
+- [ ] **Experimento 6** — `atoi` engolindo entrada inválida
+- [ ] **Experimento 7** — `clock()` em vez de `clock_gettime`
+- [ ] Medições de desempenho e gráficos de speedup
+- [ ] **Bloco 8** — rascunho do relatório no formato do *Guia de Relatórios*
 
-**Gate:** os 4 `.pgm` idênticos entre si nos 3 testes oficiais. **75% da nota fechado.**
-
----
-
-## Dia 3 — domingo 30/08 · robustez + medição + relatório (~5h)
-
-- [ ] **Bloco 7** — validação de argumentos com `strtol` (`endptr` + `errno`), tratamento de falha em `malloc`, `fopen` e `pthread_create`
-- [ ] **Experimento 6** — `atoi` engolindo lixo (`./mandelbrot 4 4 50 abc`)
-- [ ] **Experimento 7** — `clock()` em vez de `clock_gettime` na medição de tempo
-- [ ] **Bloco 8** — converter `NOTAS_RELATORIO.md` em rascunho do relatório no formato do *Guia de Relatórios*
-- [ ] Gerar os gráficos de speedup (serial × OpenMP × P1 × P2)
-
-**Gate:** rubrica 100% coberta, rascunho do relatório completo.
+**Gate:** os 4 `.pgm` idênticos entre si, rubrica 100% coberta, rascunho pronto.
 
 ---
 
-## Dia 4 — segunda 31/08 · fechamento (~3h)
+## Dia 3 — segunda 31/08 · fechamento e entrega (~3h)
 
-- [ ] **Bloco 9** — relatório final: evidências, dificuldades, limitações, link do GitHub
+- [ ] **Bloco 9** — relatório final: evidências, dificuldades, limitações, link do
+      GitHub
 - [ ] `relatorio.md` → `relatorio.pdf`
 - [ ] `make clean`; conferir `evidencias.log`
 - [ ] `tar -cf mrbm.tar mrbm/`
@@ -82,37 +88,40 @@
 - [ ] `git push` final
 - [ ] Submeter no Classroom
 
-**Buffer.** Se algum gate anterior escorregou, este dia absorve. Se nada escorregou, sobra para o Experimento 1 e polimento.
+**Buffer.** Segunda ficou deliberadamente leve. Se algum gate anterior escorregar,
+este dia absorve sem comprometer a entrega.
 
 ---
 
 ## Mapa dos experimentos
 
-| # | Erro | Evidência de captura | Prioridade | Dia |
-|---|---|---|---|---|
-| 2 | `&i` compartilhado no `pthread_create` | 20 execuções divergentes + ThreadSanitizer | essencial | 1 |
-| 3 | `altura / num_threads` sem tratar o resto | falha no teste 3 oficial (`10 6 40 4`) | essencial | 1 |
-| 4 | contador da fila sem mutex | ThreadSanitizer aponta a corrida | essencial | 2 |
-| 5 | OpenMP sem `private` | imagem corrompida e não-determinística | essencial | 2 |
-| 7 | `clock()` em vez de `clock_gettime` | paralelo aparenta ser 4× mais lento | alta | 3 |
-| 6 | `atoi` aceita `abc` como `0` | saída vazia / divisão por zero | média | 3 |
-| 1 | mapeamento com `largura-1` + `round()` | falha no teste 1 oficial | oportunista | 0 |
+| # | Erro | Evidência de captura | Prioridade | Dia | Estado |
+|---|---|---|---|---|---|
+| 1 | mapeamento com `largura-1` + `round()` | falha no teste 1 oficial | oportunista | 0 | ✅ `0316cce` |
+| 2 | `&i` compartilhado no `pthread_create` | 20 execuções divergentes + ThreadSanitizer | essencial | 1 | pendente |
+| 3 | `altura / num_threads` sem tratar o resto | falha no teste 3 oficial (`10 6 40 4`) | essencial | 1 | pendente |
+| 4 | contador da fila sem mutex | ThreadSanitizer aponta a corrida | essencial | 1 | pendente |
+| 5 | OpenMP sem `private` | imagem corrompida e não-determinística | essencial | 2 | pendente |
+| 6 | `atoi` aceita `abc` como `0` | saída vazia / divisão por zero | média | 2 | pendente |
+| 7 | `clock()` em vez de `clock_gettime` | paralelo aparenta ser mais lento | alta | 2 | pendente |
 
-Nenhum é inventado — todos são o erro que a implementação ingênua comete de verdade. Os quatro essenciais correspondem exatamente aos bugs das três implementações paralelas, que valem 75% da nota.
+Nenhum é inventado — todos são o erro que a implementação ingênua comete de
+verdade. Os quatro essenciais correspondem exatamente aos bugs das três
+implementações paralelas, que valem 75% da nota.
 
 ---
 
 ## Rubrica
 
-| Item | Peso | Coberto no |
-|---|---|---|
-| Execução OpenMP | 25% | dia 2 |
-| Execução Pthreads 1 | 25% | dia 1 |
-| Execução Pthreads 2 | 25% | dia 2 |
-| Erros + outras situações | 10% | dia 3 |
-| Makefile | 5% | dia 0 |
-| Relatório | 5% | contínuo |
-| Execução serial | 5% | dia 0 |
+| Item | Peso | Coberto no | Estado |
+|---|---|---|---|
+| Execução OpenMP | 25% | dia 2 | pendente |
+| Execução Pthreads 1 | 25% | dia 1 | pendente |
+| Execução Pthreads 2 | 25% | dia 1 | pendente |
+| Erros + outras situações | 10% | dia 2 | pendente |
+| Makefile | 5% | dia 0 | ✅ |
+| Relatório | 5% | contínuo | em andamento |
+| Execução serial | 5% | dia 0 | ✅ |
 
 ---
 
@@ -121,10 +130,10 @@ Nenhum é inventado — todos são o erro que a implementação ingênua comete 
 - [ ] Diretório chamado exatamente `mrbm`
 - [ ] Arquivo `mrbm.tar` (compactação do diretório)
 - [ ] Arquivo `mrbm.pdf` (relatório)
-- [ ] `Makefile` com alvo de compilação e `clean`
-- [ ] Código-fonte em C
+- [x] `Makefile` com alvo de compilação e `clean`
+- [ ] Código-fonte em C com as quatro implementações
 - [ ] Link do GitHub citado no relatório
-- [ ] Commits atômicos alinhados às seções do relatório
+- [x] Commits atômicos alinhados às seções do relatório
 - [ ] Os 4 `.pgm` gerados numa única execução e idênticos entre si
 - [ ] `times.txt` com os 4 tempos
-- [ ] Nada impresso em `stdout` durante a execução normal
+- [x] Nada impresso em `stdout` durante a execução normal

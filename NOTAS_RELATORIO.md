@@ -20,7 +20,7 @@
 - **Hardware:** Intel Core i7-13620H — 8 núcleos físicos, 16 threads lógicas
   (2 threads por núcleo)
 
-Verificação feita no dia 0: `-fopenmp` compila e a região paralela abre 16 threads
+Verificação feita no dia 0 (28/08): `-fopenmp` compila e a região paralela abre 16 threads
 por padrão; `-pthread` e `-fsanitize=thread` também compilam e executam.
 
 O número de núcleos é a referência contra a qual o speedup medido deve ser lido, e
@@ -178,36 +178,89 @@ diagnóstico, correção, commits, o que ficou aprendido.**
 
 ### Experimento 1 — mapeamento com `largura-1` e normalização com arredondamento
 
-- **Dia:** 0 (27/08) · **Prioridade:** oportunista
+- **Dia:** 0 (28/08) · **Prioridade:** oportunista · **Estado:** concluído
 - **Hipótese ingênua que leva ao erro:** distribuir os pontos de forma que o último
   pixel caia exatamente no limite superior da região, e arredondar a intensidade em
   vez de truncar.
 
-**Código do erro:**
+Este experimento é deliberado, e vale dizer isso no relatório com todas as letras.
+As fórmulas do Bloco 1 foram deduzidas dos gabaritos antes de escrever o código, e
+passaram nos três testes na primeira execução. O experimento existe para mostrar
+**o que teria acontecido** com as duas escolhas alternativas — as duas que qualquer
+pessoa consideraria plausíveis ao ler o enunciado.
+
+**Código do erro** (`experimentos/exp1_mapeamento.c`, três variantes selecionáveis):
 
 ```c
-/* preencher */
+passo_re = borda ? 3.0 / (LARGURA - 1) : 3.0 / LARGURA;
+passo_im = borda ? 3.0 / (ALTURA  - 1) : 3.0 / ALTURA;
+
+valor = arredonda ? (int)round(iter * 255.0 / MAX_ITER)
+                  : (iter * 255) / MAX_ITER;
 ```
 
-**Comando executado:**
+**Comandos executados:**
 
 ```
-(preencher)
+gcc -Wall -Wextra -O2 -o experimentos/exp1_mapeamento experimentos/exp1_mapeamento.c -lm
+./experimentos/exp1_mapeamento correto   | diff -u testes/esperado/teste1.txt -
+./experimentos/exp1_mapeamento borda     | diff -u testes/esperado/teste1.txt -
+./experimentos/exp1_mapeamento arredonda | diff -u testes/esperado/teste1.txt -
 ```
 
-**Saída observada contra a esperada:**
+**Saída observada contra a esperada.** Variante `correto`: sem diferenças.
+
+Variante `borda` — três das quatro linhas erradas:
 
 ```
-(preencher — colar o diff contra o gabarito do teste 1)
+  5 10 10 10
+ -5 15 30 25
+ -255 255 255 255
+ -5 15 30 25
+ +5 25 255 10
+ +5 25 255 10
+ +5 10 10 10
 ```
 
-**Diagnóstico:** *(preencher)*
+Variante `arredonda` — dois pixels errados, cada um por uma unidade:
 
-**Correção aplicada:** *(preencher)*
+```
+  5 10 10 10
+ -5 15 30 25
+ +5 15 31 26
+  255 255 255 255
+ -5 15 30 25
+ +5 15 31 26
+```
 
-**Commits:** `experimento 1: ...` seguido de `bloco 1: ...`
+**Diagnóstico.** Dividir por `largura-1` estica a região amostrada: o passo sobe de
+0,75 para 1,0 e a imagem inteira passa a cobrir pontos diferentes do plano. A linha
+inteiramente 255, que deveria estar em `y=2` — onde a parte imaginária é exatamente
+zero e o intervalo real `[-2, 0.25]` pertence ao conjunto —, migra para `y=0` e
+`y=1`, e a simetria conjugada em torno do eixo real desaparece.
 
-**O que ficou aprendido:** *(preencher)*
+O arredondamento é outro tipo de erro. Com `iter = 6` e `max_iter = 50`, o valor
+exato é 30,6: truncar dá 30, arredondar dá 31. A imagem continua visualmente
+idêntica ao gabarito.
+
+**Correção aplicada:** nenhuma — o Bloco 1 já usava as duas formas corretas. O
+experimento serve de justificativa documentada para as duas escolhas.
+
+**Commits:** `0316cce experimento 1: mapeamento com largura-1 e normalizacao
+arredondada`, sobre a base do `78421f9 bloco 1`.
+
+**O que ficou aprendido.** Os dois erros falham de maneiras opostas, e é esse
+contraste que interessa. O primeiro é escandaloso: qualquer inspeção visual da
+imagem o pegaria. O segundo é invisível a olho nu e só aparece na comparação byte a
+byte — se a validação dependesse de "a imagem parece certa", ele passaria direto
+para a entrega. É o argumento concreto para o harness do Bloco 2 existir desde o
+primeiro dia, em vez de ser montado no fim.
+
+Vale também a observação metodológica: deduzir as fórmulas dos gabaritos **antes**
+de escrever o código transformou três decisões que pareciam arbitrárias em três
+decisões verificáveis. O custo foi uma hora de análise; a alternativa seria
+descobrir os mesmos três detalhes por tentativa e erro ao longo de vários dias, sem
+nunca ter certeza de qual combinação estava certa.
 
 ---
 
@@ -475,9 +528,9 @@ consciente)*
 Registro corrido, um bloco por dia. Serve de matéria-prima para a seção de
 metodologia do relatório e garante que a ordem dos acontecimentos não se perca.
 
-### 27/08 — quinta
+### 28/08 — sexta (dia 0)
 
-**Bloco 0 concluído.** Ambiente verificado antes de escrever qualquer linha de
+**Blocos 0, 1 e 2 concluídos, mais o experimento 1.** Ambiente verificado antes de escrever qualquer linha de
 código: `gcc -fopenmp -pthread` compila e executa, a região paralela abre 16
 threads, e `-fsanitize=thread` também compila — este último importa porque os
 experimentos 2 e 4 dependem dele para capturar as corridas.
@@ -500,20 +553,39 @@ Duas decisões que já valem registro:
    com `sed '$a\'` — os arquivos de `testes/esperado` já foram gravados com o
    newline final. A normalização vira dado, não código.
 
-*(preencher — implementação serial, blocos 1 e 2)*
+**Bloco 1 — serial.** Passou nos três gabaritos na primeira execução, sem avisos de
+compilação. As fórmulas vieram da seção 1, deduzidas dos arquivos de teste antes de
+escrever qualquer linha.
 
-### 28/08 — sexta
+Duas coisas ficaram deliberadamente erradas no Bloco 1, e isso é intencional:
+`atoi` na leitura dos argumentos e `clock()` na medição de tempo. São exatamente as
+formas ingênuas que os experimentos 6 e 7 vão expor no dia 2. Escrevê-las agora não
+é descuido — é o primeiro rascunho honesto, e o `clock()` inclusive dá o resultado
+certo enquanto só existe a versão serial. O erro só nasce quando as threads chegam.
+
+**Experimento 1.** Ver seção 3. Confirmou as duas escolhas do mapeamento e da
+normalização contra as alternativas plausíveis.
+
+**Bloco 2 — harness.** O `check.sh` compara *todos* os `.pgm` gerados contra o mesmo
+gabarito. Isso cobre as duas exigências do enunciado com uma verificação só: cada
+implementação bate com o esperado, e as quatro são idênticas entre si. Como o laço
+percorre os arquivos que existem, o script não precisa de edição a cada
+implementação nova — vale para o dia 0 com um arquivo e para o dia 2 com quatro.
+
+**Correção de cronograma.** O planejamento inicial assumiu quinta 27/08 como dia 0 e
+previu cinco dias. Os relógios confirmaram sexta 28/08: são quatro. O Bloco 0 estava
+orçado em 4h e fechou em minutos, junto com os blocos 1 e 2, então o dia perdido no
+calendário foi recuperado no mesmo dia.
+
+### 29/08 — sábado (dia 1)
 
 *(preencher)*
 
-### 29/08 — sábado
+### 30/08 — domingo (dia 2)
 
 *(preencher)*
 
-### 30/08 — domingo
+### 31/08 — segunda (dia 3, entrega)
 
 *(preencher)*
 
-### 31/08 — segunda
-
-*(preencher)*
