@@ -1,7 +1,12 @@
 mandelbrot
 *.o
 *.pgm
-times.txt
+
+# so o times.txt gerado na raiz; o de testes/oficiais e material do professor
+/times.txt
+
+# artefatos de ferramentas locais
+.impeccable/
 
 exp[1-7]_*
 !exp[1-7]_*.c
