@@ -98,12 +98,12 @@ este dia absorve sem comprometer a entrega.
 | # | Erro | Evidência de captura | Prioridade | Dia | Estado |
 |---|---|---|---|---|---|
 | 1 | mapeamento com `largura-1` + `round()` | falha no teste 1 oficial | oportunista | 0 | ✅ `0316cce` |
-| 2 | `&i` compartilhado no `pthread_create` | 20 execuções divergentes + ThreadSanitizer | essencial | 1 | pendente |
-| 3 | `altura / num_threads` sem tratar o resto | falha no teste 3 oficial (`10 6 40 4`) | essencial | 1 | pendente |
-| 4 | contador da fila sem mutex | ThreadSanitizer aponta a corrida | essencial | 1 | pendente |
-| 5 | OpenMP sem `private` | imagem corrompida e não-determinística | essencial | 2 | pendente |
-| 6 | `atoi` aceita `abc` como `0` | saída vazia / divisão por zero | média | 2 | pendente |
-| 7 | `clock()` em vez de `clock_gettime` | paralelo aparenta ser mais lento | alta | 2 | pendente |
+| 2 | `&i` compartilhado no `pthread_create` | 5 execuções divergentes | essencial | 3 | concluído |
+| 3 | `altura / num_threads` sem tratar o resto | falha no teste 3 oficial (`10 6 40 4`) | essencial | 3 | concluído |
+| 4 | contador da fila sem mutex | ThreadSanitizer aponta a corrida | essencial | 3 | concluído |
+| 5 | OpenMP sem `private` | 5 execuções, 5 imagens (só com `-O0`) | essencial | 3 | concluído |
+| 6 | `atoi` aceita `abc` como `0` | `atoi("9999999999")` = 1410065407 | média | 3 | concluído |
+| 7 | `clock()` em vez de `clock_gettime` | razão 15,89× com 16 threads | alta | 3 | concluído |
 
 Nenhum é inventado — todos são o erro que a implementação ingênua comete de
 verdade. Os quatro essenciais correspondem exatamente aos bugs das três
@@ -115,25 +115,25 @@ implementações paralelas, que valem 75% da nota.
 
 | Item | Peso | Coberto no | Estado |
 |---|---|---|---|
-| Execução OpenMP | 25% | dia 2 | pendente |
-| Execução Pthreads 1 | 25% | dia 1 | pendente |
-| Execução Pthreads 2 | 25% | dia 1 | pendente |
-| Erros + outras situações | 10% | dia 2 | pendente |
+| Execução OpenMP | 25% | dia 2 | ✅ |
+| Execução Pthreads 1 | 25% | dia 1 | ✅ |
+| Execução Pthreads 2 | 25% | dia 1 | ✅ |
+| Erros + outras situações | 10% | dia 2 | ✅ |
 | Makefile | 5% | dia 0 | ✅ |
-| Relatório | 5% | contínuo | em andamento |
+| Relatório | 5% | contínuo | ✅ |
 | Execução serial | 5% | dia 0 | ✅ |
 
 ---
 
 ## Checklist de entrega
 
-- [ ] Diretório chamado exatamente `mrbm`
+- [x] Diretório chamado exatamente `mrbm`
 - [ ] Arquivo `mrbm.tar` (compactação do diretório)
-- [ ] Arquivo `mrbm.pdf` (relatório)
+- [x] Arquivo `mrbm.pdf` (relatório)
 - [x] `Makefile` com alvo de compilação e `clean`
-- [ ] Código-fonte em C com as quatro implementações
+- [x] Código-fonte em C com as quatro implementações
 - [x] Link do GitHub citado no relatório
 - [x] Commits atômicos alinhados às seções do relatório
-- [ ] Os 4 `.pgm` gerados numa única execução e idênticos entre si
-- [ ] `times.txt` com os 4 tempos
+- [x] Os 4 `.pgm` gerados numa única execução e idênticos entre si
+- [x] `times.txt` com os 4 tempos
 - [x] Nada impresso em `stdout` durante a execução normal

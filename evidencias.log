@@ -114,3 +114,309 @@ OK: times.txt gerado
 
 TODOS OS TESTES PASSARAM
 status=0
+
+
+========================================================================
+31/08/2026 — Blocos 3, 5, 6 e 7: as tres implementacoes paralelas
+========================================================================
+
+$ make
+gcc -Wall -Wextra -O2 -fopenmp -pthread -o mandelbrot mandelbrot.c
+(sem avisos)
+
+$ make check
+===== ./mandelbrot 4 4 50 1 =====
+OK: mandelbrot_mrbm_openmp.pgm
+OK: mandelbrot_mrbm_pthreads1.pgm
+OK: mandelbrot_mrbm_pthreads2.pgm
+OK: mandelbrot_mrbm_serial.pgm
+===== ./mandelbrot 6 6 30 3 =====
+OK: mandelbrot_mrbm_openmp.pgm
+OK: mandelbrot_mrbm_pthreads1.pgm
+OK: mandelbrot_mrbm_pthreads2.pgm
+OK: mandelbrot_mrbm_serial.pgm
+===== ./mandelbrot 10 6 40 4 =====
+OK: mandelbrot_mrbm_openmp.pgm
+OK: mandelbrot_mrbm_pthreads1.pgm
+OK: mandelbrot_mrbm_pthreads2.pgm
+OK: mandelbrot_mrbm_serial.pgm
+===== stdout mudo =====
+OK: stdout vazio
+===== times.txt =====
+Serial: 0.000004s
+OpenMP: 0.000019s
+Pthreads1: 0.000190s
+Pthreads2: 0.000163s
+OK: times.txt gerado
+
+TODOS OS TESTES PASSARAM
+
+
+------------------------------------------------------------------------
+Casos de erro (bloco 7)
+------------------------------------------------------------------------
+
+$ ./mandelbrot     (sem argumentos)
+uso: ./mandelbrot [largura] [altura] [max_iteracoes] [num_threads]
+  status=1
+$ ./mandelbrot 4 4 50
+uso: ./mandelbrot [largura] [altura] [max_iteracoes] [num_threads]
+  status=1
+$ ./mandelbrot 4 4 50 1 extra
+uso: ./mandelbrot [largura] [altura] [max_iteracoes] [num_threads]
+  status=1
+$ ./mandelbrot 4 4 50 abc
+erro: num_threads deve ser um numero inteiro, recebido 'abc'
+  status=1
+$ ./mandelbrot abc 4 50 1
+erro: largura deve ser um numero inteiro, recebido 'abc'
+  status=1
+$ ./mandelbrot 0 4 50 1
+erro: largura deve estar entre 1 e 2147483647, recebido '0'
+  status=1
+$ ./mandelbrot 4 -3 50 1
+erro: altura deve estar entre 1 e 2147483647, recebido '-3'
+  status=1
+$ ./mandelbrot 4 4 0 1
+erro: max_iteracoes deve estar entre 1 e 2147483647, recebido '0'
+  status=1
+$ ./mandelbrot 4 4 50 0
+erro: num_threads deve estar entre 1 e 2147483647, recebido '0'
+  status=1
+$ ./mandelbrot 9999999999 4 50 1
+erro: largura deve estar entre 1 e 2147483647, recebido '9999999999'
+  status=1
+$ ./mandelbrot 4 4 50 ""
+erro: num_threads deve ser um numero inteiro, recebido ''
+  status=1
+$ ./mandelbrot 4 4 50 3x
+erro: num_threads deve ser um numero inteiro, recebido '3x'
+  status=1
+$ ./mandelbrot 1 1 1 1
+  status=0   (imagem 1x1, valor 255)
+
+
+------------------------------------------------------------------------
+Determinismo: os quatro arquivos sao sempre identicos
+------------------------------------------------------------------------
+
+(contagem de hashes MD5 distintos entre os quatro .pgm; esperado 1)
+
+1x1, max_iter 1, 1 thread ....................... 1
+3x5, max_iter 7, 11 threads (mais threads
+  que linhas) ................................... 1
+200x200, max_iter 500, 16 threads,
+  10 execucoes seguidas ......................... 1 em todas
+
+O serial de 200x200 produz o mesmo hash com 1 e com 16 threads:
+ec532647b3a646b082ecaeb8b23966ba
+
+
+========================================================================
+31/08/2026 — Experimento 2: argumento compartilhado no pthread_create
+========================================================================
+
+$ ./experimentos/exp2_argumento_compartilhado correto
+modo: correto (&ids[i])
+  (8 indices, cada um entregue a exatamente 1 thread)
+  resumo: 0 indice(s) repetido(s), 0 ausente(s)
+
+$ for i in 1 2 3 4 5; do ./experimentos/exp2_argumento_compartilhado bug; done
+  resumo: 4 indice(s) repetido(s), 4 ausente(s)
+  resumo: 2 indice(s) repetido(s), 2 ausente(s)
+  resumo: 2 indice(s) repetido(s), 2 ausente(s)
+  resumo: 2 indice(s) repetido(s), 3 ausente(s)
+  resumo: 2 indice(s) repetido(s), 3 ausente(s)
+
+Cinco execucoes, cinco resultados diferentes. Num programa real cada indice
+ausente e uma faixa de linhas que ninguem calcula.
+
+
+========================================================================
+31/08/2026 — Experimento 3: resto da divisao inteira
+========================================================================
+
+$ ./experimentos/exp3_resto_perdido bug
+modo: bug | base=1 resto=2 | linhas cobertas: 4 de 6
+  thread 0: linhas [0, 1)
+  thread 1: linhas [1, 2)
+  thread 2: linhas [2, 3)
+  thread 3: linhas [3, 4)
+
+$ diff -u testes/esperado/teste3.txt (saida do modo bug)
+@@ -2,5 +2,5 @@
+ 6 12 19 19 19 25 44 25 19 12
+ 6 19 19 31 38 255 255 255 44 19
+ 255 255 255 255 255 255 255 255 44 19
+-6 19 19 31 38 255 255 255 44 19
+-6 12 19 19 19 25 44 25 19 12
++0 0 0 0 0 0 0 0 0 0
++0 0 0 0 0 0 0 0 0 0
+
+$ ./experimentos/exp3_resto_perdido correto
+modo: correto | base=1 resto=2 | linhas cobertas: 6 de 6
+  thread 0: linhas [0, 2)
+  thread 1: linhas [2, 4)
+  thread 2: linhas [4, 5)
+  thread 3: linhas [5, 6)
+BATE com o gabarito do teste 3
+
+As duas ultimas linhas saem zeradas — o valor inicial do buffer. O teste 3
+oficial da disciplina usa exatamente 6 linhas e 4 threads.
+
+
+========================================================================
+31/08/2026 — Experimento 4: contador da fila sem mutex
+========================================================================
+
+$ for i in 1 2 3; do ./experimentos/exp4_contador_sem_mutex bug; done
+modo: bug (sem mutex) | 20000 linhas, 8 threads
+  linhas nunca processadas : 0
+  linhas processadas 2+ vez: 3067
+  total de processamentos  : 24379 (esperado 20000)
+  ---
+  linhas nunca processadas : 0
+  linhas processadas 2+ vez: 1614
+  total de processamentos  : 21661 (esperado 20000)
+  ---
+  linhas nunca processadas : 0
+  linhas processadas 2+ vez: 1946
+  total de processamentos  : 22382 (esperado 20000)
+
+$ ./experimentos/exp4_contador_sem_mutex correto
+modo: correto (com mutex) | 20000 linhas, 8 threads
+  linhas nunca processadas : 0
+  linhas processadas 2+ vez: 0
+  total de processamentos  : 20000 (esperado 20000)
+
+$ gcc -O1 -g -fsanitize=thread -pthread -o e4tsan exp4_contador_sem_mutex.c
+$ ./e4tsan bug
+WARNING: ThreadSanitizer: data race (pid=8990)
+  Location is global 'proxima' of size 4 at 0x55555555806c
+SUMMARY: ThreadSanitizer: data race exp4_contador_sem_mutex.c:39 in worker
+  corridas relatadas: 2
+
+$ ./e4tsan correto
+  corridas relatadas: 0
+
+OBSERVACAO — a previsao estava parcialmente errada. Esperavam-se linhas puladas
+E duplicadas. A medicao mostra 0 linhas puladas e milhares duplicadas. O motivo:
+um incremento nao atomico so pode PERDER atualizacoes, nunca ganhar. Quando duas
+threads leem o mesmo valor v, ambas escrevem v+1, e o contador avanca 1 em vez
+de 2 — a linha v sai duas vezes e o contador demora mais para chegar ao fim,
+entao nada e pulado.
+
+Consequencia no mandelbrot real: a imagem sairia CORRETA, porque recalcular uma
+linha grava exatamente os mesmos bytes. O prejuizo e trabalho desperdicado (22%
+a mais nesta medicao), nao imagem errada. A corrida continua sendo comportamento
+indefinido e o ThreadSanitizer a acusa; e uma formulacao ligeiramente diferente
+(testar proxima < altura antes de incrementar) produziria linhas puladas de fato.
+
+
+========================================================================
+31/08/2026 — Experimento 5: OpenMP com variaveis compartilhadas
+========================================================================
+
+Compilado com -O0. Ver observacao ao final.
+
+$ ./exp5_openmp_sem_private correto     (duas execucoes, hash MD5 abreviado)
+c4da7168e225
+c4da7168e225
+
+$ for i in 1 2 3 4 5; do ./exp5_openmp_sem_private bug | md5sum; done
+e2eea596fda6
+43948a658cd4
+911359e96d93
+307b5fec9578
+ca410dfec1d7
+
+Cinco execucoes, cinco imagens diferentes. Nao trava, nao acusa erro: so devolve
+um resultado diferente a cada vez.
+
+OBSERVACAO — com -O2 o bug NAO se manifesta: as cinco execucoes dao o mesmo hash,
+igual ao da versao correta. O compilador mantem as variaveis compartilhadas em
+registradores dentro do corpo do laco, e o entrelacamento entre threads deixa de
+ser observavel. A corrida continua existindo no codigo-fonte; apenas o nivel de
+otimizacao esconde o sintoma. E um argumento para nao tratar "testei e funcionou"
+como prova de ausencia de corrida.
+
+
+========================================================================
+31/08/2026 — Experimento 6: atoi contra strtol
+========================================================================
+
+$ ./experimentos/exp6_atoi
+  entrada 4              atoi=4            strtol=4             aceito
+  entrada abc            atoi=0            strtol=0             REJEITADO pelo strtol
+  entrada 3x             atoi=3            strtol=3             REJEITADO pelo strtol
+  entrada                atoi=0            strtol=0             REJEITADO pelo strtol
+  entrada 0              atoi=0            strtol=0             REJEITADO pelo strtol
+  entrada -2             atoi=-2           strtol=-2            REJEITADO pelo strtol
+  entrada 9999999999     atoi=1410065407   strtol=9999999999    REJEITADO pelo strtol
+  entrada 2147483647     atoi=2147483647   strtol=2147483647    aceito
+
+O caso "9999999999" e o mais grave: atoi devolve 1410065407, um numero
+plausivel, sem nenhum sinal de que a conversao estourou.
+
+
+========================================================================
+31/08/2026 — Experimento 7: clock() contra clock_gettime()
+========================================================================
+
+$ ./experimentos/exp7_clock 16
+imagem 1200x1200, max_iter=2000
+
+   1 thread(s): clock()=  2.1897s   clock_gettime()=  2.1902s   razao= 1.00x
+   2 thread(s): clock()=  2.1615s   clock_gettime()=  1.0817s   razao= 2.00x
+   4 thread(s): clock()=  2.1372s   clock_gettime()=  0.5371s   razao= 3.98x
+   8 thread(s): clock()=  2.2245s   clock_gettime()=  0.2784s   razao= 7.99x
+  16 thread(s): clock()=  2.6048s   clock_gettime()=  0.1639s   razao=15.89x
+
+clock() fica praticamente constante em ~2,2s: e o total de CPU consumida, que
+nao muda quando o trabalho e dividido. clock_gettime() cai de 2,19s para 0,16s.
+A razao entre os dois acompanha o numero de threads quase exatamente.
+
+Com 1 thread os dois coincidem — e por isso o erro passa despercebido enquanto
+so existe a implementacao serial.
+
+OBSERVACAO — a primeira versao deste experimento media o tempo de nao fazer
+nada. O buffer img era static e nunca lido, entao o gcc -O2 concluiu que as
+escritas eram mortas e removeu o laco de calculo inteiro: o assembly gerado
+tinha 2 instrucoes de ponto flutuante no programa todo, e 1200x1200 pixels
+"levavam" 48 microssegundos com 1 thread. Corrigido tirando o static e somando
+os pixels no fim.
+
+
+========================================================================
+31/08/2026 — Medicoes de desempenho
+========================================================================
+
+Executado em ~/bench (ext4). Rodar no /mnt/c inviabiliza a medicao: cada
+execucao grava 4 arquivos e o custo de I/O atraves do sistema de arquivos do
+Windows domina o tempo total.
+
+Duas execucoes por configuracao.
+
+--- 6x6 max_iter=30, 3 threads ---
+Serial: 0.000002s OpenMP: 0.000248s Pthreads1: 0.000449s Pthreads2: 0.000357s
+Serial: 0.000003s OpenMP: 0.000216s Pthreads1: 0.000265s Pthreads2: 0.000324s
+
+--- 1200x1200 max_iter=1000, 1 thread ---
+Serial: 1.124293s OpenMP: 1.081497s Pthreads1: 1.094925s Pthreads2: 1.106065s
+Serial: 1.073352s OpenMP: 1.075380s Pthreads1: 1.089156s Pthreads2: 1.076303s
+
+--- 1200x1200 max_iter=1000, 2 threads ---
+Serial: 1.107258s OpenMP: 0.538971s Pthreads1: 0.531885s Pthreads2: 0.541409s
+Serial: 1.079321s OpenMP: 0.526594s Pthreads1: 0.540190s Pthreads2: 0.536744s
+
+--- 1200x1200 max_iter=1000, 4 threads ---
+Serial: 1.114279s OpenMP: 0.277753s Pthreads1: 0.528465s Pthreads2: 0.267873s
+Serial: 1.077404s OpenMP: 0.273826s Pthreads1: 0.518063s Pthreads2: 0.266196s
+
+--- 1200x1200 max_iter=1000, 8 threads ---
+Serial: 1.081531s OpenMP: 0.148481s Pthreads1: 0.362123s Pthreads2: 0.137303s
+Serial: 1.064335s OpenMP: 0.150313s Pthreads1: 0.353948s Pthreads2: 0.141432s
+
+--- 1200x1200 max_iter=1000, 16 threads ---
+Serial: 1.106160s OpenMP: 0.093303s Pthreads1: 0.216168s Pthreads2: 0.080640s
+Serial: 1.104654s OpenMP: 0.100139s Pthreads1: 0.202686s Pthreads2: 0.090119s

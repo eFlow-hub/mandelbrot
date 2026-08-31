@@ -35,6 +35,10 @@ até 8 threads e depois achatar, em vez de continuar até 16. Se a medição con
 é o resultado mais interessante da seção de desempenho; se contrariar, o motivo
 merece investigação.
 
+> **A medição refutou esta previsão.** De 8 para 16 threads o speedup foi de 7,84×
+> para 12,80×. O texto acima fica registrado como estava no dia 0; a explicação do
+> porquê da previsão ter falhado está na seção 3.
+
 ---
 
 ## 1. Especificação decodificada
@@ -126,466 +130,103 @@ fica fora do cronômetro, senão o custo de I/O domina e o comparativo perde sen
 
 ---
 
-## 2. Decisões de implementação
+## 2. Onde está o conteúdo final
 
-Preencher no formato usado na Implementação 1: a decisão, a justificativa, e uma
-tabela das alternativas descartadas com o motivo de cada descarte.
+Este documento foi a matéria-prima. O texto acabado está em:
 
-### 2.1 Estrutura de dados da imagem
+- **`relatorio.html` / `relatorio.pdf`** — o relatório entregue, com as decisões de
+  implementação, os sete experimentos, as medições e a análise.
+- **`evidencias.log`** — saídas brutas de todos os testes e experimentos, com os
+  comandos exatos que as produziram.
+- **`git log`** — um commit por bloco de implementação e um por experimento, cada um
+  com a justificativa técnica na mensagem.
 
-*(preencher — buffer linear contíguo versus vetor de ponteiros para linhas; impacto
-em número de alocações e em localidade de cache)*
-
-### 2.2 Estratégia do Pthreads-1: divisão estática por blocos
-
-*(preencher — como o resto da divisão é distribuído; por que blocos contíguos
-favorecem a localidade de cache; por que essa estratégia sofre com desbalanceamento
-no Mandelbrot)*
-
-### 2.3 Estratégia do Pthreads-2: fila dinâmica de linhas
-
-*(preencher — contador global sob mutex; por que a região crítica contém apenas o
-incremento e o cálculo fica fora dela; custo do lock contra o ganho de balanceamento)*
-
-### 2.4 Escolha da diretiva OpenMP
-
-*(preencher — `parallel for` e a política de `schedule` escolhida; por que as
-variáveis do laço interno são declaradas dentro do escopo em vez de listadas em
-`private`)*
-
-### 2.5 Instrumentação de tempo
-
-*(preencher — `clock_gettime(CLOCK_MONOTONIC)`; por que não `clock()`, por que não
-`gettimeofday`)*
-
-### 2.6 Validação de argumentos
-
-*(preencher — `strtol` com `endptr` e `errno`; limites aceitos para cada parâmetro)*
+A seção 1 acima foi mantida porque é a única parte que não cabia no relatório em
+tamanho útil: a dedução completa das fórmulas a partir dos gabaritos.
 
 ---
 
-## 3. Experimentos: erros instrumentados
+## 3. Correções de previsão registradas
 
-Cada experimento é um erro real, cometido de propósito ou naturalmente, deixado
-rodar até produzir evidência, e só então corrigido. O par de commits
-(`experimento N` seguido de `bloco X`) documenta a transição no histórico do
-repositório.
+Três previsões feitas antes de medir foram desmentidas pela medição. Estão no
+relatório, mas vale listá-las juntas — são o resultado mais honesto do trabalho.
 
-Template a seguir em todos: **contexto, código do erro, comando, saída observada,
-diagnóstico, correção, commits, o que ficou aprendido.**
+**1. Hyperthreading não ajudaria.** Previsão da seção 0: o speedup acharia um teto em
+8 threads, já que o Mandelbrot é aritmética pura sem espera por memória. Errado: de 8
+para 16 threads o Pthreads 2 foi de 7,84× para 12,80×. O laço de escape tem uma cadeia
+de dependências serial, e a latência das operações de ponto flutuante deixa bolhas no
+pipeline que o segundo contexto do núcleo preenche.
 
----
+**2. A corrida do contador pularia linhas.** Errado: zero linhas puladas, milhares
+duplicadas. Um incremento não atômico só perde atualizações, nunca ganha, então o
+contador avança devagar demais e nada fica para trás. No Mandelbrot real a imagem
+sairia correta — o prejuízo é 22% de trabalho desperdiçado, não imagem errada.
 
-### Experimento 1 — mapeamento com `largura-1` e normalização com arredondamento
-
-- **Dia:** 0 (28/08) · **Prioridade:** oportunista · **Estado:** concluído
-- **Hipótese ingênua que leva ao erro:** distribuir os pontos de forma que o último
-  pixel caia exatamente no limite superior da região, e arredondar a intensidade em
-  vez de truncar.
-
-Este experimento é deliberado, e vale dizer isso no relatório com todas as letras.
-As fórmulas do Bloco 1 foram deduzidas dos gabaritos antes de escrever o código, e
-passaram nos três testes na primeira execução. O experimento existe para mostrar
-**o que teria acontecido** com as duas escolhas alternativas — as duas que qualquer
-pessoa consideraria plausíveis ao ler o enunciado.
-
-**Código do erro** (`experimentos/exp1_mapeamento.c`, três variantes selecionáveis):
-
-```c
-passo_re = borda ? 3.0 / (LARGURA - 1) : 3.0 / LARGURA;
-passo_im = borda ? 3.0 / (ALTURA  - 1) : 3.0 / ALTURA;
-
-valor = arredonda ? (int)round(iter * 255.0 / MAX_ITER)
-                  : (iter * 255) / MAX_ITER;
-```
-
-**Comandos executados:**
-
-```
-gcc -Wall -Wextra -O2 -o experimentos/exp1_mapeamento experimentos/exp1_mapeamento.c -lm
-./experimentos/exp1_mapeamento correto   | diff -u testes/esperado/teste1.txt -
-./experimentos/exp1_mapeamento borda     | diff -u testes/esperado/teste1.txt -
-./experimentos/exp1_mapeamento arredonda | diff -u testes/esperado/teste1.txt -
-```
-
-**Saída observada contra a esperada.** Variante `correto`: sem diferenças.
-
-Variante `borda` — três das quatro linhas erradas:
-
-```
-  5 10 10 10
- -5 15 30 25
- -255 255 255 255
- -5 15 30 25
- +5 25 255 10
- +5 25 255 10
- +5 10 10 10
-```
-
-Variante `arredonda` — dois pixels errados, cada um por uma unidade:
-
-```
-  5 10 10 10
- -5 15 30 25
- +5 15 31 26
-  255 255 255 255
- -5 15 30 25
- +5 15 31 26
-```
-
-**Diagnóstico.** Dividir por `largura-1` estica a região amostrada: o passo sobe de
-0,75 para 1,0 e a imagem inteira passa a cobrir pontos diferentes do plano. A linha
-inteiramente 255, que deveria estar em `y=2` — onde a parte imaginária é exatamente
-zero e o intervalo real `[-2, 0.25]` pertence ao conjunto —, migra para `y=0` e
-`y=1`, e a simetria conjugada em torno do eixo real desaparece.
-
-O arredondamento é outro tipo de erro. Com `iter = 6` e `max_iter = 50`, o valor
-exato é 30,6: truncar dá 30, arredondar dá 31. A imagem continua visualmente
-idêntica ao gabarito.
-
-**Correção aplicada:** nenhuma — o Bloco 1 já usava as duas formas corretas. O
-experimento serve de justificativa documentada para as duas escolhas.
-
-**Commits:** `0316cce experimento 1: mapeamento com largura-1 e normalizacao
-arredondada`, sobre a base do `78421f9 bloco 1`.
-
-**O que ficou aprendido.** Os dois erros falham de maneiras opostas, e é esse
-contraste que interessa. O primeiro é escandaloso: qualquer inspeção visual da
-imagem o pegaria. O segundo é invisível a olho nu e só aparece na comparação byte a
-byte — se a validação dependesse de "a imagem parece certa", ele passaria direto
-para a entrega. É o argumento concreto para o harness do Bloco 2 existir desde o
-primeiro dia, em vez de ser montado no fim.
-
-Vale também a observação metodológica: deduzir as fórmulas dos gabaritos **antes**
-de escrever o código transformou três decisões que pareciam arbitrárias em três
-decisões verificáveis. O custo foi uma hora de análise; a alternativa seria
-descobrir os mesmos três detalhes por tentativa e erro ao longo de vários dias, sem
-nunca ter certeza de qual combinação estava certa.
+**3. A corrida do OpenMP apareceria em qualquer compilação.** Errado: com `-O2` as
+cinco execuções dão resultado idêntico ao da versão correta, porque o compilador
+mantém as variáveis compartilhadas em registradores. A evidência precisou ser colhida
+com `-O0`.
 
 ---
 
-### Experimento 2 — `&i` compartilhado no `pthread_create`
-
-- **Dia:** 1 (28/08) · **Prioridade:** essencial
-- **Hipótese ingênua que leva ao erro:** passar o endereço da variável de controle
-  do laço como argumento da thread, assumindo que cada thread recebe o valor daquele
-  instante.
-
-**Código do erro:**
-
-```c
-for (int i = 0; i < num_threads; i++)
-    pthread_create(&t[i], NULL, worker, &i);   /* todas leem a MESMA variável */
-```
-
-**Comando executado:** *(preencher — incluir o laço de 20 execuções repetidas)*
-
-**Saída observada:** *(preencher — quantas execuções divergiram, e como)*
-
-**Relatório do ThreadSanitizer (`-fsanitize=thread`):**
-
-```
-(preencher)
-```
-
-**Diagnóstico:** *(preencher — o laço avança enquanto as threads ainda leem o
-endereço; o valor lido depende do escalonamento, então algumas faixas são
-processadas duas vezes e outras nenhuma)*
-
-**Correção aplicada:** *(preencher — vetor de structs, um por thread, com o id e a
-faixa já resolvidos antes da criação)*
-
-**Commits:** `experimento 2: ...` seguido de `bloco 3: ...`
-
-**O que ficou aprendido:** *(preencher)*
-
----
-
-### Experimento 3 — resto da divisão inteira descartado
-
-- **Dia:** 1 (28/08) · **Prioridade:** essencial
-- **Por que é o mais valioso do conjunto:** o próprio gabarito da disciplina expõe o
-  bug. O teste 3 é `./mandelbrot 10 6 40 4` — 6 linhas divididas por 4 threads.
-
-**Código do erro:**
-
-```c
-int linhas_por_thread = altura / num_threads;   /* 6 / 4 = 1 */
-```
-
-Quatro threads processando uma linha cada cobrem 4 das 6 linhas. As duas últimas
-nunca são calculadas e permanecem com o conteúdo inicial do buffer.
-
-**Comando executado:**
-
-```
-./mandelbrot 10 6 40 4
-```
-
-**Saída observada contra a esperada:** *(preencher — colar o diff contra o gabarito
-do teste 3, destacando as duas linhas finais)*
-
-**Diagnóstico:** *(preencher)*
-
-**Correção aplicada:** *(preencher — distribuir o resto entre as primeiras
-`altura % num_threads` threads, e tratar o caso `num_threads > altura`)*
-
-**Commits:** `experimento 3: ...` seguido de `bloco 4: ...`
-
-**O que ficou aprendido:** *(preencher — por que um teste com dimensões que não
-dividem exatamente pelo número de threads vale mais que dez testes com dimensões
-redondas)*
-
----
-
-### Experimento 4 — contador da fila sem mutex
-
-- **Dia:** 2 (29/08) · **Prioridade:** essencial
-- **Hipótese ingênua que leva ao erro:** tratar `proxima_linha++` como operação
-  atômica, já que é uma única instrução no código-fonte.
-
-**Código do erro:**
-
-```c
-/* preencher — incremento do contador global sem lock */
-```
-
-**Comando executado:** *(preencher)*
-
-**Saída observada:** *(preencher — linhas puladas e linhas duplicadas; frequência
-com que o erro se manifesta em execuções repetidas)*
-
-**Relatório do ThreadSanitizer:**
-
-```
-(preencher)
-```
-
-**Diagnóstico:** *(preencher — o incremento compila para leitura, soma e escrita;
-duas threads podem ler o mesmo valor antes de qualquer escrita)*
-
-**Correção aplicada:** *(preencher — `pthread_mutex_lock` em volta do incremento; a
-thread pega a linha, solta o lock, e só então calcula, mantendo o cálculo fora da
-região crítica)*
-
-**Commits:** `experimento 4: ...` seguido de `bloco 5: ...`
-
-**O que ficou aprendido:** *(preencher — por que este é o pior tipo de bug: não
-trava, não gera erro, só produz resultado errado de vez em quando)*
-
----
-
-### Experimento 5 — OpenMP sem `private`
-
-- **Dia:** 2 (29/08) · **Prioridade:** essencial
-- **Hipótese ingênua que leva ao erro:** declarar as variáveis de trabalho antes do
-  laço, como se faria em código sequencial, e paralelizar só com o `pragma`.
-
-**Código do erro:**
-
-```c
-double zr, zi; int iter;                  /* declaradas FORA do laço */
-#pragma omp parallel for
-for (int y = 0; y < altura; y++) { ... }  /* compartilhadas entre as threads */
-```
-
-**Comando executado:** *(preencher)*
-
-**Saída observada:** *(preencher — imagem corrompida, e diferente a cada execução)*
-
-**Diagnóstico:** *(preencher — variáveis declaradas fora da região paralela são
-compartilhadas por padrão; cada thread sobrescreve o estado das outras a cada
-iteração do laço de escape)*
-
-**Correção aplicada:** *(preencher — declarar dentro do laço, de modo que o escopo
-já as torne privadas; discutir a alternativa `private(zr,zi,iter)` explícita e por
-que a primeira forma é preferível)*
-
-**Commits:** `experimento 5: ...` seguido de `bloco 6: ...`
-
-**O que ficou aprendido:** *(preencher)*
-
----
-
-### Experimento 6 — `atoi` engolindo entrada inválida
-
-- **Dia:** 3 (30/08) · **Prioridade:** média
-- **Hipótese ingênua que leva ao erro:** usar `atoi` para converter os argumentos,
-  assumindo que entrada inválida seria sinalizada de alguma forma.
-
-**Código do erro:**
-
-```c
-int num_threads = atoi(argv[4]);   /* atoi("abc") devolve 0, sem sinalizar erro */
-```
-
-**Comando executado:**
-
-```
-./mandelbrot 4 4 50 abc
-```
-
-**Saída observada:** *(preencher — `num_threads = 0`, nenhuma thread criada, arquivo
-de saída vazio ou divisão por zero)*
-
-**Diagnóstico:** *(preencher — `atoi` não distingue "converteu zero" de "não
-converteu nada"; não há como checar o erro depois do fato)*
-
-**Correção aplicada:** *(preencher — `strtol` com verificação de `endptr` e de
-`errno == ERANGE`, mais validação de faixa para cada parâmetro)*
-
-**Commits:** `experimento 6: ...` seguido de `bloco 7: ...`
-
-**O que ficou aprendido:** *(preencher — relação direta com o aviso do enunciado de
-que outros casos de teste serão usados na correção)*
-
----
-
-### Experimento 7 — `clock()` mede errado em código paralelo
-
-- **Dia:** 3 (30/08) · **Prioridade:** alta
-- **Hipótese ingênua que leva ao erro:** usar `clock()` para cronometrar, como se
-  faz em programas sequenciais.
-
-**Código do erro:**
-
-```c
-clock_t ini = clock();
-/* ... cálculo paralelo ... */
-double t = (double)(clock() - ini) / CLOCKS_PER_SEC;
-```
-
-**Comando executado:** *(preencher)*
-
-**Saída observada:** *(preencher — colar o `times.txt` produzido, em que as versões
-paralelas aparecem várias vezes mais lentas que a serial)*
-
-**Diagnóstico:** *(preencher — `clock()` devolve tempo de CPU somado sobre todas as
-threads; com N threads ocupadas, o valor cresce por um fator próximo de N mesmo
-quando o tempo de parede cai)*
-
-**Correção aplicada:** *(preencher — `clock_gettime(CLOCK_MONOTONIC)`, que mede
-tempo de parede e é imune a ajustes do relógio do sistema)*
-
-**Commits:** `experimento 7: ...` seguido de `bloco 7: ...`
-
-**O que ficou aprendido:** *(preencher — como esta medição errada inverteria
-completamente a conclusão do relatório sobre o ganho da paralelização)*
-
-**Gancho para a discussão de desempenho:** o `times.txt` de referência da disciplina
-traz `Serial: 0.000001s` e `OpenMP: 0.002340s` — o OpenMP mais de 2000 vezes mais
-lento. Não é erro de medição: é o custo de criar e sincronizar threads dominando uma
-imagem de 6×6 pixels, onde o cálculo em si é desprezível. Vale reproduzir esse caso
-e contrastá-lo com uma imagem grande, onde a relação se inverte.
-
----
-
-## 4. Medições de desempenho
-
-Cada linha é a mediana de *(preencher — número)* execuções, para reduzir o ruído de
-escalonamento do sistema operacional.
-
-| Dimensões | `max_iter` | Threads | Serial | OpenMP | Pthreads 1 | Pthreads 2 |
-|---|---|---|---|---|---|---|
-| 6 × 6 | 30 | 3 | | | | |
-| 500 × 500 | 1000 | 4 | | | | |
-| 2000 × 2000 | 1000 | 4 | | | | |
-| 2000 × 2000 | 1000 | 8 | | | | |
-
-**Speedup observado:** *(preencher)*
-
-**Pthreads 1 contra Pthreads 2, onde a estratégia dinâmica ganha:** *(preencher — o
-Mandelbrot é desbalanceado por natureza, porque as linhas que cruzam o interior do
-conjunto custam `max_iter` iterações por pixel enquanto as das bordas escapam em uma
-ou duas; medir o desequilíbrio de carga entre as threads na versão estática)*
-
-**Onde a estratégia dinâmica perde:** *(preencher — custo do mutex quando as linhas
-são baratas e a contenção domina)*
-
----
-
-## 5. Dificuldades encontradas
-
-*(preencher ao longo do desenvolvimento — o que custou tempo e por quê)*
-
----
-
-## 6. Limitações conhecidas
-
-*(preencher — o que o programa assume, o que não trata, e por que a decisão foi
-consciente)*
-
----
-
-## 7. O que não foi implementado
-
-*(preencher, se houver; declarar explicitamente é melhor que omitir)*
-
----
-
-## 8. Diário de bordo
-
-Registro corrido, um bloco por dia. Serve de matéria-prima para a seção de
-metodologia do relatório e garante que a ordem dos acontecimentos não se perca.
+## 4. Diário de bordo
 
 ### 28/08 — sexta (dia 0)
 
-**Blocos 0, 1 e 2 concluídos, mais o experimento 1.** Ambiente verificado antes de escrever qualquer linha de
-código: `gcc -fopenmp -pthread` compila e executa, a região paralela abre 16
-threads, e `-fsanitize=thread` também compila — este último importa porque os
-experimentos 2 e 4 dependem dele para capturar as corridas.
+**Blocos 0, 1 e 2 concluídos, mais o experimento 1.**
 
-Estrutura criada: `Makefile`, `.gitignore`, `.gitattributes`, `testes/oficiais`
-(arquivos do professor sem alteração) e `testes/esperado` (só o conteúdo das
-imagens, pronto para `diff`).
+Ambiente verificado antes de escrever código: `gcc -fopenmp -pthread` compila e roda,
+região paralela abre 16 threads, `-fsanitize=thread` compila.
 
-Duas decisões que já valem registro:
+Estrutura criada: `Makefile`, `.gitignore`, `.gitattributes`, `testes/oficiais` e
+`testes/esperado`.
 
-1. **`.gitattributes` com `* text=auto eol=lf`.** O repositório é editado no
-   Windows e compilado no WSL. Sem isso, o Git converteria tudo para CRLF na cópia
-   de trabalho: o `make` falharia ao ler as regras do Makefile e o `diff` contra os
-   gabaritos acusaria diferença em todas as linhas, por um motivo que não tem nada
-   a ver com o cálculo. É o tipo de erro que custa uma tarde inteira sendo
-   procurado no lugar errado.
-2. **Newline final nos gabaritos.** Os arquivos do professor terminam sem quebra de
-   linha; a saída do programa termina com `\n` na última linha, como é padrão em
-   Unix. Em vez de normalizar a cada comparação — como foi feito na Implementação 1
-   com `sed '$a\'` — os arquivos de `testes/esperado` já foram gravados com o
-   newline final. A normalização vira dado, não código.
+Duas decisões de infraestrutura que evitaram problema:
 
-**Bloco 1 — serial.** Passou nos três gabaritos na primeira execução, sem avisos de
-compilação. As fórmulas vieram da seção 1, deduzidas dos arquivos de teste antes de
-escrever qualquer linha.
+1. **`.gitattributes` com `* text=auto eol=lf`.** O repositório é editado no Windows e
+   compilado no WSL. Sem isso o Git converteria tudo para CRLF: o `make` falharia ao
+   ler o Makefile e o `diff` acusaria diferença em todas as linhas dos gabaritos, por
+   um caractere invisível sem relação com o cálculo.
+2. **Newline final nos gabaritos.** Normalizado uma vez ao criar `testes/esperado`, em
+   vez de a cada comparação. A peculiaridade vira dado, não código.
 
-Duas coisas ficaram deliberadamente erradas no Bloco 1, e isso é intencional:
-`atoi` na leitura dos argumentos e `clock()` na medição de tempo. São exatamente as
-formas ingênuas que os experimentos 6 e 7 vão expor no dia 2. Escrevê-las agora não
-é descuido — é o primeiro rascunho honesto, e o `clock()` inclusive dá o resultado
-certo enquanto só existe a versão serial. O erro só nasce quando as threads chegam.
+Serial passou nos três gabaritos na primeira execução. As fórmulas da seção 1 foram
+deduzidas dos arquivos de teste antes de escrever qualquer linha.
 
-**Experimento 1.** Ver seção 3. Confirmou as duas escolhas do mapeamento e da
-normalização contra as alternativas plausíveis.
+`atoi` e `clock()` ficaram deliberadamente no bloco 1 — são as formas ingênuas que os
+experimentos 6 e 7 expõem depois. O `clock()` inclusive dá o resultado certo enquanto
+só existe a versão serial; o erro só nasce quando as threads chegam.
 
-**Bloco 2 — harness.** O `check.sh` compara *todos* os `.pgm` gerados contra o mesmo
-gabarito. Isso cobre as duas exigências do enunciado com uma verificação só: cada
-implementação bate com o esperado, e as quatro são idênticas entre si. Como o laço
-percorre os arquivos que existem, o script não precisa de edição a cada
-implementação nova — vale para o dia 0 com um arquivo e para o dia 2 com quatro.
+**Correção de cronograma.** O plano inicial assumiu quinta 27/08 e previu cinco dias.
+Os relógios confirmaram sexta 28/08: quatro.
 
-**Correção de cronograma.** O planejamento inicial assumiu quinta 27/08 como dia 0 e
-previu cinco dias. Os relógios confirmaram sexta 28/08: são quatro. O Bloco 0 estava
-orçado em 4h e fechou em minutos, junto com os blocos 1 e 2, então o dia perdido no
-calendário foi recuperado no mesmo dia.
+### 29/08 e 30/08 — sábado e domingo
 
-### 29/08 — sábado (dia 1)
-
-*(preencher)*
-
-### 30/08 — domingo (dia 2)
-
-*(preencher)*
+Sem trabalho.
 
 ### 31/08 — segunda (dia 3, entrega)
 
-*(preencher)*
+Dia único para 85% da nota. Ordem de ataque: código primeiro para travar a rubrica de
+execução, depois os experimentos, depois relatório e entrega.
 
+- **Bloco 3** (Pthreads 1, faixas estáticas) — o resto da divisão distribuído entre as
+  primeiras `altura % num_threads` threads. `main` virou tabela de implementações, o
+  que fez os blocos 5 e 6 custarem uma linha cada.
+- **Bloco 5** (Pthreads 2, fila dinâmica sob mutex).
+- **Bloco 6** (OpenMP com `schedule(dynamic)`).
+- **Bloco 7** (validação com `strtol`, checagem de overflow, `clock_gettime`).
+- **Experimentos 2 a 7**, todos com modo `bug` e modo `correto` no mesmo binário.
+- **Medições** e **relatório**.
+
+Dois erros de método apareceram e foram corrigidos durante o próprio trabalho:
+
+- O benchmark do experimento 7 media o tempo de não fazer nada: o buffer era `static`
+  e nunca lido, e o `gcc -O2` removeu o laço de cálculo inteiro. Dois `mulsd`/`addsd`
+  no assembly do programa todo, e 1200×1200 pixels em 48 microssegundos.
+- A primeira tentativa de benchmark rodou dez minutos sem terminar, porque gravar
+  quatro imagens de 16 MB por execução através do `/mnt/c` domina o tempo. Movido para
+  o sistema de arquivos nativo do Linux.
+
+Verificações finais: 13 casos de erro rejeitados corretamente; os quatro arquivos
+idênticos em 10 execuções seguidas de 200×200 com 16 threads; `num_threads` maior que
+`altura` funciona; imagem 1×1 funciona.
