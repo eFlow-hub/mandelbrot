@@ -7,8 +7,11 @@
 
 #define _POSIX_C_SOURCE 200809L
 
+#include <errno.h>
+#include <limits.h>
 #include <omp.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -27,6 +30,56 @@ typedef struct {
     int max_iter;
     int num_threads;
 } Config;
+
+/*
+ * Le um argumento como inteiro estritamente positivo.
+ *
+ * atoi nao serve aqui: atoi("abc") devolve 0 e atoi("9999999999") devolve lixo,
+ * nos dois casos sem sinalizar nada. Nao ha como distinguir "converteu zero" de
+ * "nao converteu". strtol expoe as duas informacoes que faltam — onde a leitura
+ * parou (endptr) e se houve estouro de faixa (errno).
+ */
+static int le_inteiro_positivo(const char *texto, const char *nome, int *saida)
+{
+    char *fim;
+    long valor;
+
+    errno = 0;
+    valor = strtol(texto, &fim, 10);
+
+    if (fim == texto || *fim != '\0') {
+        fprintf(stderr, "erro: %s deve ser um numero inteiro, recebido '%s'\n",
+                nome, texto);
+        return -1;
+    }
+    if (errno == ERANGE || valor < 1 || valor > INT_MAX) {
+        fprintf(stderr, "erro: %s deve estar entre 1 e %d, recebido '%s'\n",
+                nome, INT_MAX, texto);
+        return -1;
+    }
+
+    *saida = (int)valor;
+    return 0;
+}
+
+/*
+ * Tempo de parede em segundos.
+ *
+ * clock() mediria tempo de CPU somado sobre todas as threads: com N threads
+ * ocupadas o valor cresce por um fator proximo de N mesmo quando o tempo real
+ * cai, e as versoes paralelas apareceriam mais lentas que a serial.
+ * CLOCK_MONOTONIC ainda e imune a ajustes do relogio do sistema durante a
+ * medicao.
+ */
+static double agora(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+        return 0.0;
+
+    return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
+}
 
 /*
  * Intensidade de um pixel, normalizada em [0, 255].
@@ -358,10 +411,17 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    cfg.largura     = atoi(argv[1]);
-    cfg.altura      = atoi(argv[2]);
-    cfg.max_iter    = atoi(argv[3]);
-    cfg.num_threads = atoi(argv[4]);
+    if (le_inteiro_positivo(argv[1], "largura",       &cfg.largura)     != 0 ||
+        le_inteiro_positivo(argv[2], "altura",        &cfg.altura)      != 0 ||
+        le_inteiro_positivo(argv[3], "max_iteracoes", &cfg.max_iter)    != 0 ||
+        le_inteiro_positivo(argv[4], "num_threads",   &cfg.num_threads) != 0)
+        return EXIT_FAILURE;
+
+    /* largura * altura pode estourar size_t antes mesmo de chegar ao malloc. */
+    if ((size_t)cfg.largura > SIZE_MAX / (size_t)cfg.altura) {
+        fprintf(stderr, "erro: largura x altura excede o maximo enderecavel\n");
+        return EXIT_FAILURE;
+    }
 
     img = malloc((size_t)cfg.largura * cfg.altura);
     if (img == NULL) {
@@ -371,14 +431,14 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < NUM_IMPLEMENTACOES; i++) {
         char nome[64];
-        clock_t ini;
+        double ini;
 
-        ini = clock();
+        ini = agora();
         if (IMPLEMENTACOES[i].calcula(img, &cfg) != 0) {
             free(img);
             return EXIT_FAILURE;
         }
-        tempos[i] = (double)(clock() - ini) / CLOCKS_PER_SEC;
+        tempos[i] = agora() - ini;
 
         snprintf(nome, sizeof nome, "mandelbrot_" LOGIN "_%s.pgm",
                  IMPLEMENTACOES[i].sufixo);
