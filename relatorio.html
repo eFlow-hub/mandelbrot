@@ -433,15 +433,20 @@ Entendo a lógica de cada uma delas e respondo por todas.</p>
 <p><strong>Prompts principais (lista, sem história):</strong></p>
 
 <ol>
-<li>"Analise o PDF do enunciado e o <code>.tar</code> dos testes e me dê um resumo de tudo que
-vamos ter que fazer nesta implementação"</li>
-<li>"Monte o planejamento e cronograma de demandas até a entrega" — incluindo a orientação de
-que o relatório é sobre a evolução e as tentativas, e que erros estratégicos deveriam ser
-cometidos de propósito e registrados</li>
-<li>Implementação incremental por blocos: serial, harness de teste, Pthreads 1 (faixas
-estáticas), Pthreads 2 (fila dinâmica), OpenMP, validação de argumentos</li>
-<li>Reprodução dos sete experimentos didáticos e coleta das evidências</li>
-<li>Medições de desempenho variando o número de threads, e redação do relatório</li>
+<li>"Analise o enunciado em PDF e o <code>.tar</code> com os casos de teste oficiais, e
+resuma tudo o que esta implementação exige."</li>
+<li>"Monte o planejamento e o cronograma de demandas até a entrega. O relatório é sobre a
+minha evolução e as tentativas até acertar, então errar faz parte e deve ser registrado:
+vamos errar de propósito em pontos estratégicos que a atividade cobra, para documentar o
+que aprendemos e como resolvemos."</li>
+<li>"Seguir bloco a bloco — setup, serial, harness de teste, Pthreads 1, Pthreads 2,
+OpenMP e validação de argumentos — com <code>make check</code> verde antes de cada
+commit."</li>
+<li>"Escreva o código e registre tudo num documento à parte, fora do repositório, para eu
+estudar depois e entender cada decisão."</li>
+<li>"Reproduza os experimentos nos dois modos, colete as evidências e meça o desempenho
+variando o número de threads."</li>
+<li>"Os commits no GitHub estão atômicos e corretos?"</li>
 </ol>
 
 <p><strong>O que validei manualmente e como:</strong></p>
