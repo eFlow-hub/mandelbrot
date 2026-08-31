@@ -7,6 +7,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 
+#include <omp.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,6 +167,34 @@ static int calcula_pthreads1(unsigned char *img, const Config *cfg)
     return falhou ? -1 : 0;
 }
 
+/* ------------------------------------------------------------------ openmp */
+/*
+ * O mesmo laco do serial, com uma diretiva. O OpenMP cuida de criar as threads,
+ * repartir as iteracoes e esperar todas no fim da regiao paralela.
+ *
+ * schedule(dynamic) entrega uma iteracao por vez a quem estiver livre, que e a
+ * mesma ideia da estrategia 2 dos pthreads — apropriada aqui pelo mesmo motivo:
+ * o custo por linha varia muito. Com o schedule(static) padrao, o OpenMP
+ * repartiria em blocos iguais e sofreria o mesmo desbalanceamento da estrategia
+ * 1.
+ *
+ * zr, zi e iter nao aparecem em nenhuma clausula private porque sao declaradas
+ * dentro de intensidade(), chamada de dentro da regiao paralela: variaveis
+ * locais de uma funcao ficam na pilha da thread que a executa, e cada thread
+ * tem a sua. Declara-las fora do laco as tornaria compartilhadas por padrao, e
+ * as threads sobrescreveriam o estado umas das outras.
+ */
+static int calcula_openmp(unsigned char *img, const Config *cfg)
+{
+    int y;
+
+#pragma omp parallel for schedule(dynamic) num_threads(cfg->num_threads)
+    for (y = 0; y < cfg->altura; y++)
+        calcula_linha(img + (size_t)y * cfg->largura, y, cfg);
+
+    return 0;
+}
+
 /* -------------------------------------------------------------- pthreads 2 */
 /*
  * Estrategia 2: fila dinamica de linhas.
@@ -290,6 +319,7 @@ static const struct {
     Implementacao calcula;
 } IMPLEMENTACOES[] = {
     { "Serial",    "serial",    calcula_serial    },
+    { "OpenMP",    "openmp",    calcula_openmp    },
     { "Pthreads1", "pthreads1", calcula_pthreads1 },
     { "Pthreads2", "pthreads2", calcula_pthreads2 },
 };
