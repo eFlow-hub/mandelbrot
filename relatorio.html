@@ -2,221 +2,279 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Implementação 2 — Conjunto de Mandelbrot</title>
+<title>Relatório — Implementação 2: Conjunto de Mandelbrot</title>
 <style>
-  @page { size: A4; margin: 20mm 18mm; }
-  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.55;
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; line-height: 1.5;
          color: #1a1a1a; max-width: 178mm; margin: 0 auto; }
-  h1 { font-size: 19pt; margin: 0 0 4pt; font-weight: 600; }
-  h2 { font-size: 13pt; margin: 20pt 0 6pt; padding-bottom: 3pt;
+  h1 { font-size: 17pt; margin: 0 0 2pt; font-weight: 600; }
+  h2 { font-size: 12.5pt; margin: 18pt 0 6pt; padding-bottom: 3pt;
        border-bottom: 1.5px solid #333; font-weight: 600; page-break-after: avoid; }
-  h3 { font-size: 11pt; margin: 13pt 0 4pt; font-weight: 600; page-break-after: avoid; }
-  p { margin: 6pt 0; text-align: justify; }
-  code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt;
+  h3 { font-size: 10.5pt; margin: 12pt 0 4pt; font-weight: 600; page-break-after: avoid; }
+  p { margin: 5pt 0; text-align: justify; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 9pt;
          background: #f0f0f0; padding: 1px 3px; border-radius: 2px; }
-  pre { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt;
-        background: #1e1e1e; color: #e8e8e8; padding: 8pt 10pt; border-radius: 3px;
-        overflow-x: auto; line-height: 1.4; page-break-inside: avoid; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 8.2pt;
+        background: #1e1e1e; color: #e8e8e8; padding: 7pt 9pt; border-radius: 3px;
+        overflow-x: auto; line-height: 1.35; page-break-inside: avoid; }
   pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
-  table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 9.5pt;
-          page-break-inside: avoid; }
-  th, td { border: 1px solid #bbb; padding: 4pt 6pt; text-align: left; }
+  table { border-collapse: collapse; width: 100%; margin: 7pt 0; font-size: 8.6pt;
+          page-break-inside: auto; }
+  th, td { border: 1px solid #bbb; padding: 3pt 5pt; text-align: left; vertical-align: top; }
   th { background: #ececec; font-weight: 600; }
+  tr { page-break-inside: avoid; }
   td.num { text-align: right; font-family: Consolas, monospace; }
-  .cabecalho { border-bottom: 2.5px solid #333; padding-bottom: 8pt; margin-bottom: 14pt; }
-  .meta { font-size: 9.5pt; color: #444; margin: 2pt 0; }
-  .nota { background: #f7f7f7; border-left: 3px solid #888; padding: 6pt 10pt;
-          margin: 8pt 0; font-size: 9.8pt; page-break-inside: avoid; }
-  .achado { background: #fdf6e3; border-left: 3px solid #b58900; padding: 6pt 10pt;
-            margin: 8pt 0; font-size: 9.8pt; page-break-inside: avoid; }
-  figure { margin: 10pt 0; page-break-inside: avoid; text-align: center; }
-  figcaption { font-size: 9pt; color: #555; margin-top: 4pt; }
-  ul, ol { margin: 6pt 0; padding-left: 18pt; }
-  li { margin: 3pt 0; }
-  .quebra { page-break-before: always; }
+  .cabecalho { border-bottom: 2.5px solid #333; padding-bottom: 7pt; margin-bottom: 12pt; }
+  .meta { font-size: 9pt; color: #444; margin: 1pt 0; }
+  .destaque { background: #f7f7f7; padding: 6pt 9pt; margin: 7pt 0;
+              font-size: 9.4pt; page-break-inside: avoid; border-radius: 3px; }
+  figure { margin: 9pt 0; page-break-inside: avoid; text-align: center; }
+  figcaption { font-size: 8.6pt; color: #555; margin-top: 3pt; }
+  ul, ol { margin: 5pt 0; padding-left: 17pt; }
+  li { margin: 2.5pt 0; }
+  .ok { color: #1a7a2e; font-weight: 600; }
+  .parcial { color: #a06000; font-weight: 600; }
 </style>
 </head>
 <body>
 
 <div class="cabecalho">
-  <h1>Conjunto de Mandelbrot com Paralelismo</h1>
-  <p class="meta"><strong>Disciplina:</strong> Infraestrutura de Software &nbsp;·&nbsp; Implementação 2</p>
-  <p class="meta"><strong>Aluno:</strong> Mateus Reinaux Batista Meira &nbsp;·&nbsp; <strong>Login:</strong> mrbm</p>
-  <p class="meta"><strong>Repositório:</strong> https://github.com/eFlow-hub/mandelbrot</p>
-  <p class="meta"><strong>Data:</strong> 31 de agosto de 2026</p>
+  <h1>Relatório — Infraestrutura de Software</h1>
+  <p class="meta" style="font-size:11pt;color:#222"><strong>Implementação 2: Conjunto de Mandelbrot</strong></p>
+  <p class="meta"><strong>Aluno:</strong> Mateus Reinaux Batista Meira</p>
+  <p class="meta"><strong>E-mail:</strong> mrbm@cesar.school</p>
+  <p class="meta"><strong>Data:</strong> 31/08/2026</p>
+  <p class="meta"><strong>Sistema operacional utilizado:</strong> Windows 11 + WSL2 (Ubuntu, kernel 6.6.87.2, gcc 15.2.0)</p>
+  <p class="meta"><strong>Hardware:</strong> Intel Core i7-13620H — 8 núcleos físicos, 16 threads lógicas</p>
+  <p class="meta"><strong>Link do GitHub:</strong> https://github.com/eFlow-hub/mandelbrot</p>
 </div>
 
 <h2>1. Objetivo</h2>
 
-<p>Gerar a imagem do conjunto de Mandelbrot em C por quatro caminhos diferentes — uma
-implementação serial, uma com OpenMP e duas com Pthreads usando estratégias distintas de
-divisão do trabalho — e comparar o desempenho entre elas. As quatro produzem a mesma
-imagem; o que muda é como o trabalho é repartido entre as threads.</p>
+<p>O enunciado pede um programa em C que gere a imagem do conjunto de Mandelbrot por quatro
+caminhos — uma implementação serial, uma com OpenMP e duas com Pthreads usando estratégias
+distintas de divisão do trabalho — produzindo quatro arquivos idênticos numa única execução,
+mais um <code>times.txt</code> com o tempo de cada uma. A entrega é o programa completo em
+<code>mandelbrot.c</code>, com <code>Makefile</code> (compilação, <code>check</code> e
+<code>clean</code>), sete experimentos didáticos em <code>experimentos/</code>, o harness de
+teste em <code>testes/</code>, o <code>evidencias.log</code> e este relatório.</p>
 
-<p>O programa recebe <code>largura</code>, <code>altura</code>, <code>max_iteracoes</code>
-e <code>num_threads</code>, grava quatro arquivos de imagem e um <code>times.txt</code> com
-o tempo de cada implementação, numa única execução.</p>
+<p>O ponto central do exercício não é <em>se</em> paralelizar — o problema é embaraçosamente
+paralelo — e sim <em>como dividir</em> o trabalho, já que a carga do Mandelbrot é fortemente
+desbalanceada.</p>
 
-<h2>2. Ambiente</h2>
+<h2>2. Checklist de Requisitos</h2>
 
 <table>
-<tr><th style="width:32%">Item</th><th>Valor</th></tr>
-<tr><td>Sistema</td><td>WSL2 Ubuntu, kernel 6.6.87.2-microsoft-standard-WSL2</td></tr>
-<tr><td>Compilador</td><td>gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0</td></tr>
-<tr><td>Flags</td><td><code>-Wall -Wextra -O2 -fopenmp -pthread</code></td></tr>
-<tr><td>Processador</td><td>Intel Core i7-13620H</td></tr>
-<tr><td>Núcleos</td><td>8 físicos, 16 threads lógicas (2 por núcleo)</td></tr>
+<tr><th style="width:44%">Requisito do enunciado</th><th style="width:9%">Status</th><th>Como testar / evidência</th></tr>
+<tr><td>Programa em C, executável em Linux/Unix/macOS</td><td class="ok">OK</td><td><code>make</code> sem avisos com <code>-Wall -Wextra</code></td></tr>
+<tr><td>Comando <code>mandelbrot [largura] [altura] [max_iteracoes] [num_threads]</code></td><td class="ok">OK</td><td><code>make check</code>; três casos oficiais</td></tr>
+<tr><td>Região real [-2,0; 1,0] e imaginária [-1,5; 1,5]</td><td class="ok">OK</td><td>constantes <code>RE_MIN</code>…<code>IM_MAX</code>; validado pelos gabaritos</td></tr>
+<tr><td>Implementação Serial</td><td class="ok">OK</td><td>bate com os 3 gabaritos — log 31/08</td></tr>
+<tr><td>Implementação com OpenMP</td><td class="ok">OK</td><td><code>mandelbrot_mrbm_openmp.pgm</code> idêntico ao serial nos 3 testes</td></tr>
+<tr><td>Pthreads 1 — estratégia de divisão A</td><td class="ok">OK</td><td>faixas estáticas contíguas; teste 3 (<code>10 6 40 4</code>)</td></tr>
+<tr><td>Pthreads 2 — estratégia de divisão B, distinta</td><td class="ok">OK</td><td>fila dinâmica sob mutex; seção 6.3 mostra a diferença medida</td></tr>
+<tr><td>Paralelismo aplicado ao trecho de uso intenso de CPU</td><td class="ok">OK</td><td>as três paralelizam o laço sobre as linhas, onde está todo o cálculo</td></tr>
+<tr><td>Quatro arquivos <code>mandelbrot_mrbm_*.pgm</code></td><td class="ok">OK</td><td>gerados numa única execução</td></tr>
+<tr><td>Os quatro arquivos idênticos entre si</td><td class="ok">OK</td><td>1 hash MD5 único em 10 execuções de 200×200 com 16 threads</td></tr>
+<tr><td>Saída sem cabeçalho, um valor por pixel, separados por espaço</td><td class="ok">OK</td><td>conferido por hexdump contra o gabarito</td></tr>
+<tr><td>Intensidade proporcional às iterações, normalizada em [0, 255]</td><td class="ok">OK</td><td><code>(iter * 255) / max_iter</code>; seção 4.1</td></tr>
+<tr><td><code>times.txt</code> com o tempo das quatro implementações</td><td class="ok">OK</td><td>formato <code>%s: %.6fs</code>, verificado pelo <code>check.sh</code></td></tr>
+<tr><td>Nada impresso em <code>stdout</code> na execução normal</td><td class="ok">OK</td><td>verificação automática no <code>make check</code></td></tr>
+<tr><td>Erro: número incorreto de argumentos</td><td class="ok">OK</td><td>0, 3 e 5 argumentos → mensagem de uso, status 1</td></tr>
+<tr><td>Erro: largura/altura/iterações/threads inválidos</td><td class="ok">OK</td><td>13 casos: <code>abc</code>, <code>3x</code>, vazio, <code>0</code>, <code>-3</code>, <code>9999999999</code></td></tr>
+<tr><td>Erro: falha de arquivo, de alocação ou de criação de thread</td><td class="ok">OK</td><td>retornos de <code>fopen</code>, <code>fclose</code>, <code>malloc</code> e <code>pthread_create</code> tratados</td></tr>
+<tr><td>Programa não falha; encerra com mensagem coerente</td><td class="ok">OK</td><td>todas as mensagens em <code>stderr</code>, status 1</td></tr>
+<tr><td>Makefile com compilação e limpeza</td><td class="ok">OK</td><td><code>make</code>, <code>make check</code>, <code>make clean</code></td></tr>
+<tr><td>Link do GitHub com commits atômicos</td><td class="ok">OK</td><td>15 commits, um por bloco e um por experimento</td></tr>
+<tr><td>Diretório e <code>.tar</code> nomeados <code>mrbm</code></td><td class="ok">OK</td><td>seção 9</td></tr>
 </table>
 
-<h2>3. A especificação decodificada a partir dos gabaritos</h2>
+<h2>3. Como Reproduzir</h2>
 
-<p>O enunciado descreve o cálculo em prosa, mas não fixa duas decisões que mudam o
-resultado byte a byte: como converter o índice do pixel em coordenada do plano, e se a
-normalização arredonda ou trunca. Como a correção compara os arquivos exatamente, escolher
-diferente reprova o teste mesmo com a matemática correta.</p>
+<pre><code>git clone https://github.com/eFlow-hub/mandelbrot mrbm &amp;&amp; cd mrbm
+make                          # gcc -Wall -Wextra -O2 -fopenmp -pthread
+make check                    # roda os tres gabaritos oficiais da disciplina
+./mandelbrot 1200 1200 1000 8 # gera os 4 .pgm e o times.txt
+make clean</code></pre>
 
-<p>Em vez de tentar e errar, as fórmulas foram deduzidas dos três arquivos de teste
-fornecidos, antes de escrever o código.</p>
+<p>Os experimentos são compilados individualmente. Dois exigem opções específicas, pelos
+motivos explicados na seção 5.2:</p>
 
-<h3>3.1 Mapeamento do pixel para o plano complexo</h3>
+<pre><code># a corrida do OpenMP so se manifesta sem otimizacao
+gcc -O0 -fopenmp -o exp5 experimentos/exp5_openmp_sem_private.c
+./exp5 bug | md5sum          # rode 5 vezes: 5 hashes diferentes
 
-<pre><code>c_re = -2.0 + x * (3.0 / largura);
-c_im = -1.5 + y * (3.0 / altura);</code></pre>
+# a corrida do contador, diagnosticada pelo ThreadSanitizer
+gcc -O1 -g -fsanitize=thread -pthread -o exp4 experimentos/exp4_contador_sem_mutex.c
+./exp4 bug</code></pre>
 
-<p>O divisor é <code>largura</code>, não <code>largura-1</code>. A verificação usa duas
-propriedades independentes do conjunto. Primeira: no teste 1 (<code>4 4 50 1</code>) a
-terceira linha do gabarito é <code>255 255 255 255</code>. Com esse mapeamento, a linha
-<code>y=2</code> cai em <code>c_im = 0</code>, isto é, sobre o eixo real, e os quatro pontos
-têm parte real <code>-2,0</code>, <code>-1,25</code>, <code>-0,5</code> e <code>0,25</code>
-— todo o intervalo real <code>[-2; 0,25]</code> pertence ao conjunto, então os quatro
-saturam em 255. Segunda: no teste 2 (<code>6 6 30 3</code>) as linhas 1 e 5 são idênticas,
-assim como as linhas 2 e 4. É a simetria conjugada do conjunto em torno do eixo real, que
-só cai nos índices certos com esse passo.</p>
+<div class="destaque"><strong>Aviso de reprodução das medições.</strong> O benchmark deve
+rodar no sistema de arquivos nativo do Linux. Executado em <code>/mnt/c</code>, cada rodada
+grava quatro arquivos de 16 MB através do sistema de arquivos do Windows e o custo de I/O
+domina completamente o tempo — a primeira tentativa foi abortada após dez minutos sem
+terminar (diário #18).</div>
 
-<h3>3.2 Laço de escape</h3>
+<h2>4. Arquitetura (resumida)</h2>
 
-<pre><code>int iter = 0;
-double zr = 0.0, zi = 0.0;
+<p>A peça central é <code>calcula_linha()</code>, que preenche uma linha inteira da imagem.
+A linha é a unidade de trabalho que as quatro implementações repartem entre si.</p>
+
+<div class="destaque"><strong>Por que nenhuma implementação precisa de sincronização para
+escrever a imagem.</strong> O valor de um pixel não depende de nenhum outro, e cada thread
+escreve num conjunto <em>disjunto</em> de posições do buffer. Uma condição de corrida exige
+acesso concorrente ao <em>mesmo</em> endereço com pelo menos uma escrita — o que nunca ocorre
+aqui. O único ponto que precisa de mutex no programa é o contador da fila da estratégia 2,
+que é estado compartilhado de verdade.</div>
+
+<p>A imagem é um bloco linear contíguo de <code>largura × altura</code> bytes, com a linha
+<code>y</code> em <code>img + y * largura</code>. Um vetor de ponteiros para linhas exigiria
+<code>altura + 1</code> alocações em vez de uma e espalharia as linhas pelo heap, prejudicando
+a localidade de cache. Cada pixel é <code>unsigned char</code>, exatamente a faixa
+<code>[0, 255]</code> do valor normalizado — um <code>int</code> gastaria quatro vezes mais
+memória sem ganho. As quatro implementações são registradas numa tabela percorrida pela
+<code>main</code>, que mede, calcula, grava e acumula o tempo.</p>
+
+<h3>4.1 As fórmulas, deduzidas dos gabaritos</h3>
+
+<p>O enunciado não fixa duas decisões que mudam o resultado byte a byte: como converter o
+índice do pixel em coordenada, e se a normalização arredonda ou trunca. Como a correção
+compara os arquivos exatamente, foram deduzidas dos três arquivos de teste antes de escrever
+o código.</p>
+
+<pre><code>c_re = -2.0 + x * (3.0 / largura);        /* divide por largura, nao largura-1 */
+c_im = -1.5 + y * (3.0 / altura);
 
 while (zr*zr + zi*zi &lt;= 4.0 &amp;&amp; iter &lt; max_iter) {
-    double t = zr*zr - zi*zi + c_re;
+    double t = zr*zr - zi*zi + c_re;      /* t: o novo zi usa o zr ANTIGO */
     zi = 2.0*zr*zi + c_im;
     zr = t;
     iter++;
-}</code></pre>
+}
 
-<p>O critério de divergência é <code>|z| &gt; 2</code>, aplicado aqui como
-<code>|z|² &gt; 4</code> para evitar a raiz quadrada — este é o trecho mais executado do
-programa inteiro, e eliminar o <code>sqrt()</code> é a otimização mais barata disponível. O
-teste é avaliado antes de cada iteração; mudá-lo para <code>&lt; 4.0</code> ou movê-lo para
-o fim do laço desloca toda a contagem em uma unidade.</p>
+pixel = (iter * 255) / max_iter;          /* divisao inteira: trunca */</code></pre>
 
-<p>A variável temporária <code>t</code> não é estilo: o novo <code>zi</code> depende do
-<code>zr</code> antigo. Atribuir <code>zr</code> primeiro corrompe o cálculo silenciosamente.</p>
+<p><strong>Prova do mapeamento.</strong> No teste 1 (<code>4 4 50 1</code>) a terceira linha
+do gabarito é <code>255 255 255 255</code>. Com esse passo, <code>y=2</code> cai em
+<code>c_im = 0</code> — a linha do eixo real — e os quatro pontos têm parte real
+<code>-2,0</code>, <code>-1,25</code>, <code>-0,5</code> e <code>0,25</code>: todo o intervalo
+real <code>[-2; 0,25]</code> pertence ao conjunto, então os quatro saturam. Confirmação
+independente no teste 2, onde as linhas 1 e 5 são idênticas, assim como as 2 e 4 — a simetria
+conjugada do conjunto, que só cai nos índices certos com esse passo.</p>
 
-<p>Verificação pontual: para <code>c = 0,5</code> a sequência é 0,5 → 0,75 → 1,0625 →
-1,6289 → 3,153, escapando em <code>iter = 5</code>. O gabarito do teste 2 traz 42 nessa
-posição, e <code>(5 × 255) / 30 = 42</code>.</p>
+<p><strong>Prova da normalização.</strong> No teste 2, <code>max_iter = 30</code> e
+<code>iter = 1</code> dão 8,5 exato. Truncar produz 8, arredondar produziria 9; o gabarito
+traz 8.</p>
 
-<h3>3.3 Normalização</h3>
+<p><strong>Por que <code>|z|²</code> contra 4 e não <code>|z|</code> contra 2.</strong>
+Evita a raiz quadrada no trecho mais executado do programa, sem alterar o resultado.</p>
 
-<pre><code>pixel = (iter * 255) / max_iter;   /* divisão inteira: trunca */</code></pre>
+<h3>4.2 As três estratégias de paralelização</h3>
 
-<p>O caso decisivo está no teste 2: com <code>max_iter = 30</code> e <code>iter = 1</code>,
-o valor exato é 8,5. Truncar dá 8, arredondar daria 9, e o gabarito traz 8. Pontos do
-conjunto atingem <code>iter == max_iter</code> e resultam em 255 sem caso especial.</p>
+<table>
+<tr><th style="width:18%">Implementação</th><th style="width:37%">Como divide</th><th>Consequência</th></tr>
+<tr><td><strong>Pthreads 1</strong></td>
+    <td>Faixas contíguas fixadas antes de começar. O resto da divisão é distribuído entre as primeiras <code>altura % num_threads</code> threads.</td>
+    <td>Zero sincronização e boa localidade de cache, mas sofre com o desbalanceamento: o tempo total é o da thread mais lenta.</td></tr>
+<tr><td><strong>Pthreads 2</strong></td>
+    <td>Fila dinâmica: um contador compartilhado entrega a próxima linha a quem terminar. Mutex protege apenas o incremento; o cálculo fica fora da região crítica.</td>
+    <td>A carga se equilibra sozinha sem conhecer o custo de cada linha. O lock é adquirido uma vez por linha, contra milhares de iterações de cálculo.</td></tr>
+<tr><td><strong>OpenMP</strong></td>
+    <td><code>parallel for</code> com <code>schedule(dynamic)</code>.</td>
+    <td>Mesma ideia da estratégia 2. Com o <code>schedule(static)</code> padrão sofreria o mesmo desbalanceamento da estratégia 1.</td></tr>
+</table>
 
-<h3>3.4 Formato de saída</h3>
+<p>Nenhuma cláusula <code>private</code> é necessária no OpenMP: <code>zr</code>,
+<code>zi</code> e <code>iter</code> são locais de <code>intensidade()</code>, chamada de dentro
+da região paralela, e variáveis locais de função vivem na pilha da thread que as executa.</p>
 
-<p>Apesar da extensão <code>.pgm</code>, o arquivo não tem cabeçalho de formato: apenas os
-valores de intensidade, separados por um espaço, uma linha de texto por linha da imagem,
-sem espaço à direita. Confirmado por inspeção hexadecimal do gabarito.</p>
+<h3>4.3 Tratamento de erros</h3>
 
-<h2 class="quebra">4. Arquitetura</h2>
+<p>Todos os parâmetros são lidos com <code>strtol</code>, verificando <code>endptr</code> e
+<code>errno</code> e exigindo inteiro estritamente positivo. O produto
+<code>largura × altura</code> é conferido contra <code>SIZE_MAX</code> antes do
+<code>malloc</code>, porque pode estourar <code>size_t</code> e pedir uma alocação pequena para
+uma imagem enorme. No caminho de erro de <code>pthread_create</code>, as threads já criadas são
+aguardadas antes de liberar as estruturas que elas ainda usam — liberar antes seria
+<em>use-after-free</em>.</p>
 
-<p>A peça central é a função que calcula uma linha inteira:</p>
+<h2>5. Estratégias e Diário de Desenvolvimento</h2>
 
-<pre><code>static void calcula_linha(unsigned char *linha, int y, const Config *cfg);</code></pre>
+<h3>5.1 Estratégias</h3>
 
-<p>A linha é a unidade de trabalho que as quatro implementações repartem. Como o valor de
-um pixel não depende de nenhum outro, e cada thread escreve num conjunto disjunto de
-posições do buffer, <strong>nenhuma sincronização é necessária para escrever a imagem</strong>.
-Uma condição de corrida exige acesso concorrente ao mesmo endereço com pelo menos uma
-escrita, e isso nunca acontece aqui.</p>
+<table>
+<tr><th style="width:6%"></th><th style="width:20%">Nome curto</th><th style="width:42%">Contexto</th><th>Motivo da troca (se houve)</th></tr>
+<tr><td>S1</td><td>Blocos incrementais</td>
+    <td>Um bloco por implementação, um commit por bloco, <code>make check</code> verde antes de commitar. O serial como oráculo de correção dos outros três.</td>
+    <td>— (não houve troca)</td></tr>
+<tr><td>S2</td><td>Erro instrumentado</td>
+    <td>Cada erro clássico reproduzido num programa isolado em <code>experimentos/</code>, com modos <code>bug</code> e <code>correto</code> no mesmo binário, para o contraste ser direto e a <code>main</code> nunca ficar quebrada no histórico.</td>
+    <td>—</td></tr>
+<tr><td>S3</td><td>Medição controlada</td>
+    <td>Benchmark no sistema de arquivos nativo, com repetições, e leitura obrigatória do resultado para impedir que o compilador elimine o trabalho como código morto.</td>
+    <td>Adotada depois que as duas primeiras tentativas de medição falharam (#16 e #18).</td></tr>
+</table>
 
-<p>O problema é, portanto, <em>embaraçosamente paralelo</em>: a dificuldade não está em
-coordenar as threads, e sim em <em>dividir</em> o trabalho — que é exatamente o que as duas
-estratégias de Pthreads exploram.</p>
+<h3>5.2 Diário de Tentativas</h3>
 
-<p>A imagem é um bloco linear contíguo de <code>largura × altura</code> bytes, com a linha
-<code>y</code> começando em <code>img + y * largura</code>. A alternativa, um vetor de
-ponteiros para linhas, exigiria <code>altura + 1</code> alocações em vez de uma e espalharia
-as linhas pelo heap, prejudicando a localidade de cache — inaceitável num programa cujo
-propósito é ser rápido. Cada pixel é <code>unsigned char</code>, que é exatamente a faixa
-<code>[0, 255]</code> do valor normalizado.</p>
+<table>
+<tr><th style="width:3%">#</th><th style="width:5%">Est.</th><th style="width:26%">O que tentei</th><th style="width:26%">Resultado</th><th style="width:22%">Hipótese/Causa (se falhou)</th><th style="width:7%">Quando</th><th>Evidência</th></tr>
 
-<p>As quatro implementações são registradas numa tabela percorrida pela <code>main</code>,
-que mede, calcula, grava o arquivo e acumula o tempo. Acrescentar uma implementação é
-acrescentar uma linha.</p>
+<tr><td>1</td><td>S1</td><td>Deduzir mapeamento, escape e normalização dos três gabaritos antes de escrever código</td><td><span class="ok">OK</span> — três decisões fixadas com prova independente</td><td></td><td>28/08</td><td>relatório §4.1</td></tr>
 
-<h3>4.1 Serial</h3>
+<tr><td>2</td><td>S1</td><td>Bloco 0: repositório, Makefile, gabaritos em <code>testes/</code></td><td><span class="ok">OK</span></td><td></td><td>28/08</td><td><code>c2fb695</code></td></tr>
 
-<p>Percorre as linhas em ordem. Vale 5% da nota, mas seu papel real é ser o oráculo de
-correção: os outros três são validados por comparação com ele.</p>
+<tr><td>3</td><td>S1</td><td><code>.gitattributes</code> com <code>eol=lf</code></td><td><span class="ok">OK</span> — preventivo</td><td>Repositório editado no Windows e compilado no WSL: CRLF quebraria o <code>make</code> e faria o <code>diff</code> acusar todas as linhas</td><td>28/08</td><td><code>c2fb695</code></td></tr>
 
-<h3>4.2 Pthreads 1 — divisão estática por faixas contíguas</h3>
+<tr><td>4</td><td>S1</td><td>Bloco 1: implementação serial completa</td><td><span class="ok">OK</span> — passou nos três gabaritos na primeira execução</td><td></td><td>28/08</td><td><code>78421f9</code></td></tr>
 
-<p>Cada thread recebe um intervalo <code>[y_ini, y_fim)</code> antes de começar e nunca mais
-consulta estado compartilhado. Zero sincronização no laço, e as linhas de uma mesma thread
-ficam vizinhas na memória.</p>
+<tr><td>5</td><td>S2</td><td>Experimento 1: mapeamento com <code>largura-1</code></td><td>Falha esperada e confirmada — 3 das 4 linhas erradas; a linha de 255 migra de <code>y=2</code> para <code>y=0</code></td><td>O passo sobe de 0,75 para 1,0 e a imagem amostra pontos diferentes do plano</td><td>28/08</td><td><code>0316cce</code></td></tr>
 
-<p>O resto da divisão inteira é distribuído entre as primeiras
-<code>altura % num_threads</code> threads. Sem isso, <code>altura = 6</code> com 4 threads
-daria <code>6/4 = 1</code> e quatro faixas de uma linha cobririam apenas 4 das 6 linhas — que
-é precisamente o caso do teste 3 oficial (<code>10 6 40 4</code>).</p>
+<tr><td>6</td><td>S2</td><td>Experimento 1: normalização com <code>round()</code></td><td>Falha esperada e confirmada — 2 pixels errados, cada um por 1 unidade; imagem visualmente idêntica</td><td><code>iter=6</code>, <code>max_iter=50</code> dá 30,6: truncar 30, arredondar 31</td><td>28/08</td><td><code>0316cce</code></td></tr>
 
-<h3>4.3 Pthreads 2 — fila dinâmica de linhas</h3>
+<tr><td>7</td><td>S1</td><td>Bloco 2: <code>check.sh</code> comparando <em>todos</em> os <code>.pgm</code> contra o mesmo gabarito</td><td><span class="ok">OK</span> — cobre duas exigências com uma verificação, e não precisa ser editado a cada implementação nova</td><td></td><td>28/08</td><td><code>2d89f24</code></td></tr>
 
-<p>Um único contador compartilhado entrega a próxima linha livre a quem terminar. Quem pega
-uma linha barata volta logo; quem pega uma cara processa menos linhas no total. A carga se
-equilibra sozinha, sem ninguém precisar conhecer o custo de cada linha de antemão.</p>
+<tr><td>8</td><td>S1</td><td>Bloco 3: Pthreads 1 com faixas estáticas e resto distribuído</td><td><span class="ok">OK</span> — <code>make check</code> verde, incluindo o teste 3</td><td></td><td>31/08</td><td><code>e4df62a</code></td></tr>
 
-<p>O incremento fica sob mutex porque <code>proxima++</code> compila para ler, somar e
-escrever. A região crítica contém <em>apenas</em> o incremento: o cálculo fica fora dela,
-senão as threads se serializariam e a versão paralela pagaria o custo do lock sem ganho
-nenhum.</p>
+<tr><td>9</td><td>S2</td><td>Experimento 2: <code>&amp;i</code> no <code>pthread_create</code></td><td>Falha esperada e confirmada — 5 execuções, 5 resultados: até 4 índices repetidos e 4 ausentes</td><td>O laço continua incrementando <code>i</code> enquanto as threads já leem o endereço</td><td>31/08</td><td><code>59b1264</code></td></tr>
 
-<h3>4.4 OpenMP</h3>
+<tr><td>10</td><td>S2</td><td>Experimento 3: <code>altura / num_threads</code> sem tratar o resto, nas dimensões do teste 3 oficial</td><td>Falha esperada e confirmada — 4 de 6 linhas cobertas; as duas últimas saem zeradas</td><td><code>6/4 = 1</code>; quatro faixas de uma linha não cobrem seis linhas</td><td>31/08</td><td><code>59b1264</code></td></tr>
 
-<pre><code>#pragma omp parallel for schedule(dynamic) num_threads(cfg-&gt;num_threads)
-for (y = 0; y &lt; cfg-&gt;altura; y++)
-    calcula_linha(img + (size_t)y * cfg-&gt;largura, y, cfg);</code></pre>
+<tr><td>11</td><td>S1</td><td>Bloco 5: Pthreads 2 com fila dinâmica sob mutex</td><td><span class="ok">OK</span></td><td></td><td>31/08</td><td><code>41854c9</code></td></tr>
 
-<p>A escolha de <code>schedule(dynamic)</code> segue a mesma lógica da estratégia 2. Com o
-<code>schedule(static)</code> padrão, o OpenMP repartiria em blocos iguais e sofreria o
-mesmo desbalanceamento da estratégia 1 — o que a seção 7 mostra medido.</p>
+<tr><td>12</td><td>S2</td><td>Experimento 4: contador da fila sem mutex, 20 000 linhas e 8 threads</td><td><span class="parcial">Parcial</span> — a corrida existe (ThreadSanitizer acusa), mas o sintoma foi outro: <strong>0 linhas puladas</strong> e milhares duplicadas</td><td>Incremento não atômico só <em>perde</em> atualizações, nunca ganha: o contador avança devagar demais, nada fica para trás</td><td>31/08</td><td><code>59b1264</code></td></tr>
 
-<p>Nenhuma cláusula <code>private</code> é necessária: <code>zr</code>, <code>zi</code> e
-<code>iter</code> são locais de <code>intensidade()</code>, chamada de dentro da região
-paralela, e variáveis locais de função vivem na pilha da thread que a executa.</p>
+<tr><td>13</td><td>S1</td><td>Bloco 6: OpenMP com <code>schedule(dynamic)</code></td><td><span class="ok">OK</span> — os quatro arquivos idênticos nos três testes</td><td></td><td>31/08</td><td><code>50fec9c</code></td></tr>
 
-<h3>4.5 Tratamento de erros</h3>
+<tr><td>14</td><td>S2</td><td>Experimento 5: OpenMP sem <code>private</code>, compilado com <code>-O2</code></td><td>Falha do experimento — o bug <em>não</em> se manifesta: 5 execuções com resultado idêntico ao da versão correta</td><td>O compilador mantém as variáveis compartilhadas em registradores; o entrelaçamento deixa de ser observável</td><td>31/08</td><td><code>59b1264</code></td></tr>
 
-<p>Todos os parâmetros são lidos com <code>strtol</code>, verificando onde a leitura parou
-(<code>endptr</code>) e se houve estouro de faixa (<code>errno</code>), e exigindo inteiro
-estritamente positivo. O produto <code>largura × altura</code> é conferido contra
-<code>SIZE_MAX</code> antes do <code>malloc</code>. Falhas de alocação, de criação de arquivo
-e de <code>pthread_create</code> produzem mensagem em <code>stderr</code> e encerram com
-status 1. No caminho de erro de criação de threads, as já criadas são aguardadas antes de
-liberar as estruturas que elas ainda usam.</p>
+<tr><td>15</td><td>S2</td><td>Recompilar o experimento 5 com <code>-O0</code></td><td><span class="ok">OK</span> — 5 execuções, 5 imagens diferentes</td><td></td><td>31/08</td><td>evidencias.log</td></tr>
 
-<h2 class="quebra">5. Testes</h2>
+<tr><td>16</td><td>S2</td><td>Experimento 7: medir <code>clock()</code> contra <code>clock_gettime()</code> em 1200×1200</td><td>Falha do experimento — resultados impossíveis: 1200×1200 com 1 thread em 48 µs</td><td>Buffer <code>static</code> e nunca lido: o <code>-O2</code> considerou as escritas mortas e removeu o laço inteiro. O assembly tinha 2 instruções de ponto flutuante no programa todo</td><td>31/08</td><td><code>59b1264</code></td></tr>
 
-<p>O alvo <code>make check</code> executa os três casos oficiais e compara <em>todos</em> os
-arquivos <code>.pgm</code> gerados contra o mesmo gabarito. Isso cobre as duas exigências do
-enunciado com uma verificação só: cada implementação bate com o esperado, e as quatro são
-idênticas entre si. Verifica ainda que nada é impresso em <code>stdout</code> e que o
-<code>times.txt</code> é gerado.</p>
+<tr><td>17</td><td>S3</td><td>Corrigir: tirar o <code>static</code> e somar os pixels ao final</td><td><span class="ok">OK</span> — razão de 15,89× entre os dois relógios com 16 threads</td><td></td><td>31/08</td><td>evidencias.log</td></tr>
+
+<tr><td>18</td><td>S1</td><td>Bloco 7: <code>strtol</code>, checagem de overflow e <code>clock_gettime</code></td><td><span class="ok">OK</span> — 13 casos de erro rejeitados com mensagem e status 1</td><td></td><td>31/08</td><td><code>a920c75</code></td></tr>
+
+<tr><td>19</td><td>S3</td><td>Medições de desempenho executadas no diretório do projeto, em <code>/mnt/c</code></td><td>Falha — abortado após 10 minutos sem terminar</td><td>Cada execução grava 4 arquivos de 16 MB; o I/O através do sistema de arquivos do Windows domina o tempo total</td><td>31/08</td><td>evidencias.log</td></tr>
+
+<tr><td>20</td><td>S3</td><td>Repetir em <code>~/bench</code> (ext4), 1200×1200, duas execuções por configuração</td><td><span class="ok">OK</span> — estático empaca em 5,2×, dinâmicas chegam a 12,8×</td><td></td><td>31/08</td><td>seção 6.3</td></tr>
+
+<tr><td>21</td><td>S1</td><td>Confrontar a previsão sobre <em>hyperthreading</em>, registrada antes de medir</td><td><span class="parcial">Parcial</span> — previsão refutada: de 8 para 16 threads o speedup foi de 7,84× para 12,80×</td><td>A premissa "aritmética pura não tem bolhas de pipeline" estava errada: a cadeia de dependências serial do laço de escape também gera bolha</td><td>31/08</td><td><code>581ea81</code> vs <code>56e28a6</code></td></tr>
+</table>
+
+<h2>6. Evidências</h2>
+
+<h3>6.1 Log automático</h3>
+
+<p>O arquivo <code>evidencias.log</code> acompanha o <code>.tar</code> e traz a saída bruta de
+todos os testes e experimentos, cada bloco precedido do comando exato que o produziu e da
+data. As três seções principais são a verificação de ambiente (28/08), os blocos de
+implementação com os casos de erro (31/08) e os sete experimentos com as medições (31/08).</p>
+
+<h3>6.2 Prints</h3>
+
+<p><strong>Validação principal — <code>make check</code>:</strong></p>
 
 <pre><code>===== ./mandelbrot 10 6 40 4 =====
 OK: mandelbrot_mrbm_openmp.pgm
@@ -225,178 +283,66 @@ OK: mandelbrot_mrbm_pthreads2.pgm
 OK: mandelbrot_mrbm_serial.pgm
 ===== stdout mudo =====
 OK: stdout vazio
+===== times.txt =====
+Serial: 0.000004s
+OpenMP: 0.000019s
+Pthreads1: 0.000190s
+Pthreads2: 0.000163s
 
 TODOS OS TESTES PASSARAM</code></pre>
 
-<p>Além dos gabaritos, foram verificados 13 casos de erro (argumentos faltando, sobrando,
-não numéricos, zero, negativos, acima de <code>INT_MAX</code>, string vazia,
-<code>"3x"</code>), todos rejeitados com mensagem coerente e status 1. Em determinismo:
-imagem 1×1; 11 threads para 5 linhas (mais threads que linhas); e 200×200 com 16 threads
-repetido 10 vezes — em todos os casos os quatro arquivos saíram idênticos.</p>
-
-<h2>6. Experimentos: os erros e o que cada um ensinou</h2>
-
-<p>Sete erros foram reproduzidos deliberadamente em programas isolados, no diretório
-<code>experimentos/</code>. Cada um roda nos modos <code>bug</code> e <code>correto</code>,
-para o contraste ficar no mesmo binário. As saídas completas estão em
-<code>evidencias.log</code>.</p>
-
-<h3>6.1 Mapeamento e normalização</h3>
-
-<p>As duas alternativas plausíveis descartadas na seção 3 falham de maneiras opostas.
-Dividir por <code>largura-1</code> erra três das quatro linhas do teste 1: a linha de 255
-migra de <code>y=2</code> para <code>y=0</code> e a simetria desaparece. Arredondar em vez
-de truncar erra dois pixels, cada um por uma unidade — a imagem fica visualmente idêntica ao
-gabarito.</p>
-
-<div class="nota">O contraste é a lição: o primeiro erro qualquer inspeção visual pegaria; o
-segundo só a comparação byte a byte pega. Se a validação fosse "abrir a imagem e ver se
-parece o Mandelbrot", o segundo chegaria intacto à entrega — e custaria a nota das quatro
-implementações de uma vez, já que todas compartilham a mesma função de intensidade.</div>
-
-<h3>6.2 O argumento passado ao pthread_create</h3>
-
-<p>Passar <code>&amp;i</code> em vez de <code>&amp;ids[i]</code> faz todas as threads
-apontarem para a mesma variável, que o laço continua incrementando. Em cinco execuções, cinco
-resultados diferentes:</p>
-
-<pre><code>resumo: 4 indice(s) repetido(s), 4 ausente(s)
-resumo: 2 indice(s) repetido(s), 2 ausente(s)
-resumo: 2 indice(s) repetido(s), 2 ausente(s)
-resumo: 2 indice(s) repetido(s), 3 ausente(s)
-resumo: 2 indice(s) repetido(s), 3 ausente(s)</code></pre>
-
-<p>Cada índice ausente é uma faixa de linhas que ninguém calcula.</p>
-
-<h3>6.3 O resto da divisão inteira</h3>
-
-<p>Nas dimensões do teste 3 oficial, sem tratar o resto:</p>
+<p><strong>Erro principal — o resto da divisão (diário #10):</strong></p>
 
 <pre><code>modo: bug | base=1 resto=2 | linhas cobertas: 4 de 6
 
-@@ diff contra o gabarito @@
+@@ diff contra o gabarito do teste 3 @@
 -6 19 19 31 38 255 255 255 44 19
 -6 12 19 19 19 25 44 25 19 12
 +0 0 0 0 0 0 0 0 0 0
 +0 0 0 0 0 0 0 0 0 0</code></pre>
 
-<p>As duas últimas linhas saem com o conteúdo inicial do buffer. Um caso de teste cujas
-dimensões não dividem exatamente pelo número de threads vale mais que dez com dimensões
-redondas.</p>
+<p><strong>Corrida diagnosticada — o contador sem mutex (diário #12):</strong></p>
 
-<h3>6.4 O contador da fila sem mutex</h3>
+<pre><code>WARNING: ThreadSanitizer: data race (pid=8990)
+  Location is global 'proxima' of size 4 at 0x55555555806c
+SUMMARY: ThreadSanitizer: data race exp4_contador_sem_mutex.c:39 in worker
 
-<p>Com 20 000 linhas e 8 threads, o ThreadSanitizer acusa a corrida sobre a variável
-<code>proxima</code>, e a contagem mostra o efeito:</p>
+modo: bug (sem mutex)          modo: correto (com mutex)
+  puladas   : 0                  puladas   : 0
+  duplicadas: 3067               duplicadas: 0
+  total     : 24379 (esp. 20000) total     : 20000 (esp. 20000)</code></pre>
 
-<pre><code>modo: bug (sem mutex)
-  linhas nunca processadas : 0
-  linhas processadas 2+ vez: 3067
-  total de processamentos  : 24379 (esperado 20000)
+<p><strong>Tratamento de erros:</strong></p>
 
-modo: correto (com mutex)
-  linhas processadas 2+ vez: 0
-  total de processamentos  : 20000 (esperado 20000)</code></pre>
+<pre><code>$ ./mandelbrot 4 4 50 abc
+erro: num_threads deve ser um numero inteiro, recebido 'abc'   status=1
+$ ./mandelbrot 9999999999 4 50 1
+erro: largura deve estar entre 1 e 2147483647, recebido '9999999999'   status=1
+$ ./mandelbrot 4 4 0 1
+erro: max_iteracoes deve estar entre 1 e 2147483647, recebido '0'   status=1</code></pre>
 
-<div class="achado"><strong>Achado que contraria a previsão.</strong> Esperavam-se linhas
-puladas <em>e</em> duplicadas; a medição mostra zero puladas e milhares duplicadas. O motivo
-é que um incremento não atômico só pode <em>perder</em> atualizações, nunca ganhar: quando
-duas threads leem o mesmo valor <code>v</code>, ambas escrevem <code>v+1</code>, o contador
-avança 1 em vez de 2, a linha <code>v</code> sai duas vezes e o fim da fila demora mais a
-chegar — então nada fica sem processar.<br><br>
-A consequência prática é contraintuitiva: no Mandelbrot real a imagem sairia
-<strong>correta</strong>, porque recalcular uma linha grava exatamente os mesmos bytes. O
-prejuízo é trabalho desperdiçado — 22% a mais nesta medição —, não imagem errada. A corrida
-continua sendo comportamento indefinido, e uma formulação ligeiramente diferente (testar
-<code>proxima &lt; altura</code> antes de incrementar) produziria linhas puladas de fato.</div>
+<h3>6.3 Medições de desempenho</h3>
 
-<h3>6.5 OpenMP com variáveis compartilhadas</h3>
-
-<p>Declarando <code>zr</code>, <code>zi</code> e <code>iter</code> fora da região paralela,
-cinco execuções produzem cinco imagens diferentes. Não trava e não acusa erro: apenas devolve
-um resultado diferente a cada vez.</p>
-
-<div class="achado"><strong>Segundo achado inesperado.</strong> Compilado com
-<code>-O2</code>, o bug <em>não se manifesta</em>: as cinco execuções dão o mesmo resultado, e
-igual ao da versão correta. O compilador mantém as variáveis compartilhadas em registradores
-dentro do corpo do laço, e o entrelaçamento deixa de ser observável. A corrida continua no
-código-fonte; só o nível de otimização esconde o sintoma. É a demonstração de que "testei e
-funcionou" não é prova de ausência de corrida — a evidência precisou ser colhida com
-<code>-O0</code>.</div>
-
-<h3>6.6 atoi contra strtol</h3>
-
-<pre><code>entrada abc            atoi=0            strtol=0             REJEITADO
-entrada 3x             atoi=3            strtol=3             REJEITADO
-entrada 9999999999     atoi=1410065407   strtol=9999999999    REJEITADO</code></pre>
-
-<p>O caso <code>"9999999999"</code> é o mais grave: <code>atoi</code> devolve 1 410 065 407,
-um número perfeitamente plausível, sem nenhum sinal de que a conversão estourou. No programa
-real, <code>num_threads = 0</code> produziria imagem vazia e <code>max_iteracoes = 0</code>
-produziria divisão por zero.</p>
-
-<h3>6.7 clock() contra clock_gettime()</h3>
-
-<pre><code> 1 thread(s): clock()=  2.1897s   clock_gettime()=  2.1902s   razao= 1.00x
- 2 thread(s): clock()=  2.1615s   clock_gettime()=  1.0817s   razao= 2.00x
- 4 thread(s): clock()=  2.1372s   clock_gettime()=  0.5371s   razao= 3.98x
- 8 thread(s): clock()=  2.2245s   clock_gettime()=  0.2784s   razao= 7.99x
-16 thread(s): clock()=  2.6048s   clock_gettime()=  0.1639s   razao=15.89x</code></pre>
-
-<p><code>clock()</code> permanece praticamente constante em 2,2 s — é o total de CPU
-consumida, que não muda quando o trabalho é dividido — enquanto o tempo real cai de 2,19 s
-para 0,16 s. A razão entre os dois acompanha o número de threads quase exatamente. Com uma
-thread os dois coincidem, e é por isso que o erro passa despercebido enquanto só existe a
-implementação serial: <strong>é um bug que só nasce quando o contexto muda</strong>.</p>
-
-<div class="nota"><strong>Erro de método corrigido durante o próprio experimento.</strong> A
-primeira versão media o tempo de não fazer nada. O buffer era <code>static</code> e nunca
-lido, então o <code>gcc -O2</code> concluiu que as escritas eram mortas e removeu o laço de
-cálculo inteiro — o assembly gerado tinha 2 instruções de ponto flutuante no programa todo, e
-1200×1200 pixels "levavam" 48 microssegundos. Foi corrigido tirando o <code>static</code> e
-somando os pixels ao final.</div>
-
-<h2 class="quebra">7. Desempenho</h2>
-
-<p>Imagem 1200×1200, <code>max_iter = 1000</code>, duas execuções por configuração. Os
-tempos abaixo são a média. O benchmark foi executado no sistema de arquivos nativo do Linux:
-rodando em <code>/mnt/c</code>, o custo de gravar quatro arquivos através do sistema de
-arquivos do Windows domina e inviabiliza a comparação.</p>
-
-<p>Tempo serial de referência: <strong>1,093 s</strong>.</p>
+<p>Imagem 1200×1200, <code>max_iter = 1000</code>, duas execuções por configuração, no sistema
+de arquivos nativo do Linux. Tempo serial de referência: <strong>1,093 s</strong>.</p>
 
 <table>
 <tr>
-  <th rowspan="2">Threads</th>
+  <th rowspan="2" style="width:12%">Threads</th>
   <th colspan="2">OpenMP</th>
   <th colspan="2">Pthreads 1 (estático)</th>
   <th colspan="2">Pthreads 2 (dinâmico)</th>
 </tr>
 <tr><th>tempo</th><th>speedup</th><th>tempo</th><th>speedup</th><th>tempo</th><th>speedup</th></tr>
-<tr><td class="num">1</td>
-    <td class="num">1,078 s</td><td class="num">1,01×</td>
-    <td class="num">1,092 s</td><td class="num">1,00×</td>
-    <td class="num">1,091 s</td><td class="num">1,00×</td></tr>
-<tr><td class="num">2</td>
-    <td class="num">0,533 s</td><td class="num">2,05×</td>
-    <td class="num">0,536 s</td><td class="num">2,04×</td>
-    <td class="num">0,539 s</td><td class="num">2,03×</td></tr>
-<tr><td class="num">4</td>
-    <td class="num">0,276 s</td><td class="num">3,96×</td>
-    <td class="num">0,523 s</td><td class="num">2,09×</td>
-    <td class="num">0,267 s</td><td class="num">4,09×</td></tr>
-<tr><td class="num">8</td>
-    <td class="num">0,149 s</td><td class="num">7,32×</td>
-    <td class="num">0,358 s</td><td class="num">3,05×</td>
-    <td class="num">0,139 s</td><td class="num">7,84×</td></tr>
-<tr><td class="num">16</td>
-    <td class="num">0,097 s</td><td class="num">11,30×</td>
-    <td class="num">0,209 s</td><td class="num">5,22×</td>
-    <td class="num">0,085 s</td><td class="num">12,80×</td></tr>
+<tr><td class="num">1</td><td class="num">1,078 s</td><td class="num">1,01×</td><td class="num">1,092 s</td><td class="num">1,00×</td><td class="num">1,091 s</td><td class="num">1,00×</td></tr>
+<tr><td class="num">2</td><td class="num">0,533 s</td><td class="num">2,05×</td><td class="num">0,536 s</td><td class="num">2,04×</td><td class="num">0,539 s</td><td class="num">2,03×</td></tr>
+<tr><td class="num">4</td><td class="num">0,276 s</td><td class="num">3,96×</td><td class="num">0,523 s</td><td class="num">2,09×</td><td class="num">0,267 s</td><td class="num">4,09×</td></tr>
+<tr><td class="num">8</td><td class="num">0,149 s</td><td class="num">7,32×</td><td class="num">0,358 s</td><td class="num">3,05×</td><td class="num">0,139 s</td><td class="num">7,84×</td></tr>
+<tr><td class="num">16</td><td class="num">0,097 s</td><td class="num">11,30×</td><td class="num">0,209 s</td><td class="num">5,22×</td><td class="num">0,085 s</td><td class="num">12,80×</td></tr>
 </table>
 
 <figure>
-<svg width="640" height="330" viewBox="0 0 700 330" xmlns="http://www.w3.org/2000/svg">
+<svg width="600" height="300" viewBox="0 0 700 330" xmlns="http://www.w3.org/2000/svg">
   <line x1="70" y1="310" x2="670" y2="310" stroke="#333" stroke-width="1"/>
   <line x1="70" y1="40" x2="70" y2="310" stroke="#333" stroke-width="1"/>
   <g font-family="Arial" font-size="10" fill="#555">
@@ -439,111 +385,142 @@ arquivos do Windows domina e inviabiliza a comparação.</p>
   <text x="370" y="20" font-family="Arial" font-size="11" font-weight="bold"
         text-anchor="middle" fill="#333">Speedup por número de threads</text>
 </svg>
-<figcaption>Eixo horizontal: número de threads. Eixo vertical: speedup sobre a versão serial.</figcaption>
+<figcaption>Eixo horizontal: threads. Eixo vertical: speedup sobre a versão serial.</figcaption>
 </figure>
 
-<h3>7.1 Estático contra dinâmico</h3>
-
-<p>Até 2 threads as três curvas coincidem. A partir de 4 elas se separam, e a diferença
-cresce: com 16 threads a estratégia dinâmica atinge 12,8× enquanto a estática empaca em
-5,2× — menos da metade.</p>
-
-<p>A causa é a geometria do conjunto. A região <code>[-1,5; 1,5]</code> no eixo imaginário
+<p><strong>Estático contra dinâmico.</strong> Até 2 threads as três curvas coincidem. A partir
+de 4 elas se separam e a distância cresce. A causa é a geometria: a região no eixo imaginário
 coloca o corpo do conjunto no meio da imagem, e as linhas que o cruzam custam
-<code>max_iter</code> iterações por pixel, enquanto as das bordas escapam em uma ou duas. Com
-faixas contíguas, a thread que recebe a faixa central faz várias vezes mais trabalho que as
-demais, e o tempo total é o da mais lenta — as outras terminam e ficam ociosas.</p>
+<code>max_iter</code> iterações por pixel enquanto as das bordas escapam em uma ou duas. Com
+faixas contíguas, a thread da faixa central faz várias vezes mais trabalho e o tempo total é o
+da mais lenta.</p>
 
-<p>O caso de 4 threads é o mais ilustrativo: <code>0,523 s</code> é praticamente o mesmo
-tempo de 2 threads (<code>0,536 s</code>). Dobrar o número de threads não trouxe ganho
-nenhum, porque a faixa mais cara continuou custando o mesmo.</p>
+<p>O caso de 4 threads é o mais ilustrativo: <code>0,523 s</code> contra <code>0,536 s</code> de
+2 threads. <strong>Dobrar o número de threads não trouxe ganho nenhum</strong>, porque a faixa
+mais cara continuou custando o mesmo.</p>
 
-<p>A fila dinâmica não precisa saber nada disso: quem termina cedo simplesmente pega mais
-trabalho. O custo do mutex é irrelevante porque ele é adquirido uma vez por linha, enquanto o
-cálculo de uma linha custa milhares de iterações.</p>
+<p><strong>Threads lógicas contra núcleos físicos.</strong> A previsão registrada antes de medir
+era que o speedup acharia teto em 8 threads, já que o <em>hyperthreading</em> ajuda sobretudo
+quando há espera por memória. A medição refutou: de 8 para 16 threads o Pthreads 2 foi de 7,84×
+para 12,80×. O laço de escape tem uma cadeia de dependências serial — cada iteração precisa do
+resultado da anterior — e a latência das operações de ponto flutuante deixa bolhas no pipeline
+que o segundo contexto do núcleo preenche.</p>
 
-<h3>7.2 Threads lógicas contra núcleos físicos</h3>
+<p><strong>Quando paralelizar custa mais do que rende.</strong> Na imagem 6×6 do teste 2, as
+versões paralelas são cem vezes mais lentas (<code>0,000002 s</code> serial contra
+<code>0,000248 s</code> do OpenMP): criar e sincronizar threads custa dezenas de
+microssegundos, e 36 pixels custam dois. É o mesmo fenômeno visível no <code>times.txt</code>
+de referência da disciplina.</p>
 
-<div class="achado"><strong>Previsão registrada antes da medição, e parcialmente
-refutada.</strong> A expectativa anotada no início era que o speedup crescesse até 8 threads
-(os núcleos físicos) e depois achatasse, já que o <em>hyperthreading</em> ajuda sobretudo
-quando há esperas por memória e o Mandelbrot é aritmética pura.<br><br>
-A medição desmente: de 8 para 16 threads o Pthreads 2 vai de 7,84× para 12,80×, um ganho
-adicional de 63%. A explicação é que o laço de escape tem uma cadeia de dependências serial —
-cada iteração precisa do resultado da anterior — e a latência das operações de ponto flutuante
-deixa bolhas no pipeline que o segundo contexto do núcleo consegue preencher. O ganho é real,
-embora abaixo do dobro que 16 threads sugeririam.</div>
+<h2>7. Uso de IA</h2>
 
-<h3>7.3 Quando o paralelismo custa mais do que rende</h3>
+<p><strong>Onde usei IA:</strong></p>
 
-<p>Na imagem 6×6 do teste 2, os tempos se invertem:</p>
+<p>Utilizei o Claude Code (modelo Opus 5) como assistente ao longo de toda a implementação:
+no planejamento e cronograma, na dedução das fórmulas a partir dos gabaritos, na escrita do
+<code>mandelbrot.c</code> com as quatro implementações, na escrita dos sete experimentos e do
+harness de teste, na condução das sessões de medição no WSL que geraram o
+<code>evidencias.log</code>, e na redação deste relatório. A direção do trabalho, as decisões
+de escopo e a validação final foram minhas.</p>
 
-<pre><code>Serial: 0.000002s  OpenMP: 0.000248s  Pthreads1: 0.000449s  Pthreads2: 0.000357s</code></pre>
-
-<p>As versões paralelas são cem vezes mais lentas. Criar e sincronizar threads custa dezenas
-de microssegundos, e o cálculo de 36 pixels custa 2 microssegundos. É o mesmo fenômeno visível
-no <code>times.txt</code> de referência da disciplina, onde o OpenMP aparece muito mais lento
-que o serial. Paralelizar só compensa quando o trabalho por thread supera o custo de criá-la.</p>
-
-<h2>8. Dificuldades</h2>
+<p><strong>Prompts principais (lista, sem história):</strong></p>
 
 <ol>
-<li><strong>Fixar as fórmulas exatas.</strong> Foi a parte que mais exigiu análise. A decisão
-de deduzi-las dos gabaritos antes de programar, em vez de tentar e corrigir, evitou um ciclo
-longo de tentativa e erro sobre três decisões independentes.</li>
-<li><strong>Reproduzir corridas de dados de forma confiável.</strong> Duas resistiram: a do
-OpenMP só aparece com <code>-O0</code>, e a do contador produziu um sintoma diferente do
-previsto. Ambas exigiram investigar em vez de aceitar o primeiro resultado.</li>
-<li><strong>Medir o que se pretende medir.</strong> Dois erros de método apareceram antes de
-qualquer número confiável: <code>clock()</code> medindo CPU somada, e o compilador removendo
-o laço inteiro de um benchmark cujo resultado não era lido.</li>
-<li><strong>I/O do sistema de arquivos montado.</strong> A primeira tentativa de benchmark
-foi abortada após dez minutos sem terminar, porque gravar quatro imagens de 16 MB por
-execução através do <code>/mnt/c</code> domina completamente o tempo.</li>
+<li>"Analise o PDF do enunciado e o <code>.tar</code> dos testes e me dê um resumo de tudo que
+vamos ter que fazer nesta implementação"</li>
+<li>"Monte o planejamento e cronograma de demandas até a entrega" — incluindo a orientação de
+que o relatório é sobre a evolução e as tentativas, e que erros estratégicos deveriam ser
+cometidos de propósito e registrados</li>
+<li>Implementação incremental por blocos: serial, harness de teste, Pthreads 1 (faixas
+estáticas), Pthreads 2 (fila dinâmica), OpenMP, validação de argumentos</li>
+<li>Reprodução dos sete experimentos didáticos e coleta das evidências</li>
+<li>Medições de desempenho variando o número de threads, e redação do relatório</li>
 </ol>
 
-<h2>9. Limitações conhecidas</h2>
+<p><strong>O que validei manualmente e como:</strong></p>
 
-<ul>
-<li>Os parâmetros são inteiros positivos até <code>INT_MAX</code>; a região do plano é fixa,
-sem opção de recorte ou zoom.</li>
-<li>A imagem inteira é mantida em memória, o que limita as dimensões à RAM disponível. Um
-esquema por blocos com escrita incremental removeria o limite, ao custo de complicar a
-divisão do trabalho.</li>
-<li>A simetria conjugada do conjunto não é explorada. Calcular metade das linhas e espelhar
-reduziria o trabalho quase pela metade, mas mascararia a comparação entre estratégias de
-divisão, que é o objetivo do exercício.</li>
-<li>O tamanho do lote da fila dinâmica é de uma linha. Para imagens muito estreitas, um lote
-maior amortizaria melhor o custo do mutex.</li>
-</ul>
+<p>Rodei <code>make clean &amp;&amp; make &amp;&amp; make check</code> no WSL, com os três
+gabaritos oficiais da disciplina passando. Extraí o <code>mrbm.tar</code> num diretório limpo e
+confirmei que compila e passa nos testes a partir do pacote entregue. Conferi que os quatro
+<code>.pgm</code> saem idênticos comparando os hashes MD5, inclusive em execuções repetidas com
+16 threads. Verifiquei os 13 casos de erro um a um. Reproduzi os experimentos nos dois modos e
+comparei as saídas com os gabaritos.</p>
 
-<h2>10. Conclusão</h2>
+<div class="destaque"><strong>Observação sobre as verificações.</strong> Três resultados
+contrariaram a expectativa e só apareceram porque as medições foram conferidas em vez de
+aceitas: o ganho real do <em>hyperthreading</em> (§6.3), o sintoma da corrida no contador
+(diário #12) e o desaparecimento da corrida do OpenMP sob <code>-O2</code> (diário #14). Os
+dois erros de método nos próprios experimentos (#16 e #19) também só foram pegos por
+desconfiança de números implausíveis.</div>
 
-<p>As quatro implementações produzem arquivos idênticos e passam nos três casos oficiais. A
-comparação entre elas confirma que, num problema embaraçosamente paralelo mas com carga
-desbalanceada, <strong>a estratégia de divisão importa mais que o mecanismo de
-paralelização</strong>: OpenMP e Pthreads dinâmico, que usam abordagens equivalentes de
-distribuição, entregam desempenho equivalente (11,3× e 12,8×), enquanto o Pthreads estático,
-com o mesmo mecanismo do dinâmico, fica em 5,2×.</p>
+<h2>8. Reflexão Final</h2>
 
-<p>Dos sete erros instrumentados, os dois mais instrutivos foram justamente os que
-contrariaram a expectativa: a corrida do contador que degrada desempenho sem corromper a
-imagem, e a corrida do OpenMP que a otimização do compilador torna invisível. Ambos reforçam
-a mesma lição — a ausência de sintoma não é prova de correção em código concorrente.</p>
+<p>A decisão mais valiosa foi deduzir as fórmulas dos gabaritos <em>antes</em> de escrever
+código. Custou uma análise inicial, mas transformou três decisões aparentemente arbitrárias —
+o divisor do passo, a posição do teste de escape e truncar contra arredondar — em decisões
+verificáveis, cada uma com prova independente. O serial passou nos três testes na primeira
+execução, e como as quatro implementações compartilham a mesma função de intensidade, isso
+travou a correção de todas de uma vez.</p>
 
-<h2>11. Repositório e reprodução</h2>
+<p>A segunda decisão que se pagou foi o harness comparar <em>todos</em> os arquivos gerados
+contra o mesmo gabarito. Uma verificação cobre as duas exigências do enunciado — bater com o
+esperado e serem idênticos entre si — e o script nunca precisou ser editado, valendo igual
+para uma implementação ou para quatro.</p>
 
-<p><code>https://github.com/eFlow-hub/mandelbrot</code></p>
+<p>O aprendizado técnico central é que, num problema embaraçosamente paralelo, a estratégia de
+divisão importa mais que o mecanismo de paralelização. OpenMP e Pthreads dinâmico, mecanismos
+completamente diferentes mas com a mesma abordagem de distribuição, entregaram desempenho
+equivalente (11,3× e 12,8×). O Pthreads estático, mesmo mecanismo do dinâmico e abordagem
+diferente, ficou em 5,2&times;.</p>
 
-<pre><code>make                     # compila
-make check               # roda os tres gabaritos oficiais
-make clean               # remove binarios e saidas
-./mandelbrot 1200 1200 1000 8</code></pre>
+<p>O aprendizado que menos esperava veio dos erros que não se comportaram como o previsto. A
+corrida no contador degrada desempenho sem corromper a imagem, porque recalcular uma linha
+grava os mesmos bytes. A corrida do OpenMP some quando o compilador otimiza. Os dois apontam
+para a mesma conclusão desconfortável: <strong>em código concorrente, ausência de sintoma não
+é prova de correção</strong>. Foi o que justificou usar o ThreadSanitizer em vez de confiar em
+execuções repetidas.</p>
 
-<p>O histórico segue commits atômicos alinhados às seções deste relatório: um por bloco de
-implementação e um por experimento, cada um com a justificativa na mensagem. O arquivo
-<code>evidencias.log</code> traz as saídas brutas de todos os testes e experimentos, com os
-comandos que as produziram.</p>
+<p>O maior retrabalho foi de método, não de código: dois benchmarks tiveram que ser refeitos,
+um porque o compilador eliminou o trabalho que eu pretendia medir, outro porque o I/O do
+sistema de arquivos montado dominava o tempo. Numa próxima, começaria checando a plausibilidade
+da primeira medição antes de coletar as demais.</p>
+
+<h2>9. Checklist Final de Entrega</h2>
+
+<table>
+<tr><th style="width:70%">Item</th><th>Confirmado?</th></tr>
+<tr><td>Compilei do zero seguindo só o que está no relatório</td><td>Sim — <code>.tar</code> extraído em diretório limpo, compila e passa</td></tr>
+<tr><td>Rodei os testes e o <code>evidencias.log</code> foi gerado</td><td>Sim</td></tr>
+<tr><td>Tenho os prints obrigatórios</td><td>Sim — seção 6.2, trechos do log</td></tr>
+<tr><td>Testei pelo menos um caso limite e um caso inválido</td><td>Sim — imagem 1×1, mais threads que linhas, 13 casos inválidos</td></tr>
+<tr><td>As quatro implementações produzem arquivos idênticos</td><td>Sim — 1 hash MD5 em 10 execuções seguidas</td></tr>
+<tr><td>Preenchi a seção de uso de IA</td><td>Sim — seção 7</td></tr>
+<tr><td>Revisei o relatório e removi frases genéricas / vazias</td><td>Sim</td></tr>
+<tr><td>Diretório e <code>.tar</code> nomeados com as iniciais do e-mail em minúsculas</td><td>Sim — <code>mrbm</code></td></tr>
+<tr><td><code>evidencias.log</code> está dentro do <code>.tar</code></td><td>Sim</td></tr>
+<tr><td>Makefile com compilação e limpeza</td><td>Sim</td></tr>
+<tr><td>Link do GitHub no relatório, com commits atômicos</td><td>Sim — cabeçalho e seção 3</td></tr>
+</table>
+
+<h2>10. Se eu tivesse mais 2 horas</h2>
+
+<p>Exploraria a simetria conjugada do conjunto para calcular metade das linhas e espelhar o
+resto, cortando quase pela metade o trabalho de qualquer das quatro implementações. Deixei de
+fora de propósito: mascararia justamente a comparação entre estratégias de divisão, que é o
+objetivo do exercício.</p>
+
+<p>Mediria o desequilíbrio de carga diretamente, instrumentando cada thread da estratégia 1
+para registrar quantas iterações executou. Hoje o desbalanceamento é inferido do tempo total;
+com esse dado ele ficaria explícito, e daria para mostrar numericamente que a thread da faixa
+central faz várias vezes mais trabalho que as das bordas.</p>
+
+<p>Tornaria o tamanho do lote da fila dinâmica configurável, em vez de fixo em uma linha. Para
+imagens muito estreitas o custo do mutex por linha começa a pesar, e um lote maior amortizaria
+melhor — seria a variável natural para uma terceira medição.</p>
+
+<p>Por fim, acrescentaria ao <code>make check</code> uma execução sob ThreadSanitizer das
+quatro implementações, transformando em verificação automática o que hoje foi feito uma vez à
+mão nos experimentos.</p>
 
 </body>
 </html>
