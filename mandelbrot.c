@@ -166,6 +166,91 @@ static int calcula_pthreads1(unsigned char *img, const Config *cfg)
     return falhou ? -1 : 0;
 }
 
+/* -------------------------------------------------------------- pthreads 2 */
+/*
+ * Estrategia 2: fila dinamica de linhas.
+ *
+ * Em vez de repartir as linhas antes de comecar, existe um unico contador
+ * compartilhado. Cada thread pega a proxima linha livre, calcula, e volta para
+ * pegar outra, ate a fila esvaziar. Quem pega uma linha barata volta logo; quem
+ * pega uma cara demora mais e pega menos linhas no total. A carga se equilibra
+ * sozinha, sem ninguem precisar saber o custo de cada linha de antemao.
+ *
+ * O contador e o unico estado compartilhado, e le-e-incrementa nao e atomico:
+ * compila para leitura, soma e escrita, entao duas threads podem ler o mesmo
+ * valor antes de qualquer escrita e processar a mesma linha duas vezes,
+ * deixando outra sem calcular. Por isso o mutex.
+ *
+ * A regiao critica contem apenas o incremento. O calculo fica FORA dela — se
+ * ficasse dentro, as threads se serializariam e a versao paralela seria mais
+ * lenta que a serial, pagando o custo do lock sem nenhum ganho.
+ */
+typedef struct {
+    unsigned char  *img;
+    const Config   *cfg;
+    int             proxima;
+    pthread_mutex_t mutex;
+} FilaArg;
+
+static void *worker_fila(void *bruto)
+{
+    FilaArg *f = (FilaArg *)bruto;
+
+    for (;;) {
+        int y;
+
+        pthread_mutex_lock(&f->mutex);
+        y = f->proxima++;
+        pthread_mutex_unlock(&f->mutex);
+
+        if (y >= f->cfg->altura)
+            break;
+
+        calcula_linha(f->img + (size_t)y * f->cfg->largura, y, f->cfg);
+    }
+
+    return NULL;
+}
+
+static int calcula_pthreads2(unsigned char *img, const Config *cfg)
+{
+    pthread_t *threads;
+    FilaArg    fila;
+    int criadas, i;
+    int falhou = 0;
+
+    threads = malloc((size_t)cfg->num_threads * sizeof *threads);
+    if (threads == NULL) {
+        fprintf(stderr, "erro: falha ao alocar as estruturas das threads\n");
+        return -1;
+    }
+
+    fila.img     = img;
+    fila.cfg     = cfg;
+    fila.proxima = 0;
+    if (pthread_mutex_init(&fila.mutex, NULL) != 0) {
+        fprintf(stderr, "erro: falha ao inicializar o mutex\n");
+        free(threads);
+        return -1;
+    }
+
+    for (criadas = 0; criadas < cfg->num_threads; criadas++) {
+        if (pthread_create(&threads[criadas], NULL, worker_fila, &fila) != 0) {
+            fprintf(stderr, "erro: falha ao criar a thread %d\n", criadas);
+            falhou = 1;
+            break;
+        }
+    }
+
+    /* Espera antes de destruir o mutex: ele vive na pilha desta funcao. */
+    for (i = 0; i < criadas; i++)
+        pthread_join(threads[i], NULL);
+
+    pthread_mutex_destroy(&fila.mutex);
+    free(threads);
+    return falhou ? -1 : 0;
+}
+
 /* ------------------------------------------------------------------- saida */
 
 /*
@@ -206,6 +291,7 @@ static const struct {
 } IMPLEMENTACOES[] = {
     { "Serial",    "serial",    calcula_serial    },
     { "Pthreads1", "pthreads1", calcula_pthreads1 },
+    { "Pthreads2", "pthreads2", calcula_pthreads2 },
 };
 
 #define NUM_IMPLEMENTACOES \
